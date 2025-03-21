@@ -3,8 +3,10 @@ import calendar
 from pyomo.environ import *
 import holidays
 
-df = pd.read_csv("data.csv")
+dias_semana = {"LU": 0, "MA": 1, "MI": 2,
+               "JU": 3, "VI": 4, "SA": 5, "DO": 6, "FE": 7, "MN": 8}
 
+tienda_valores = {'T_MB': False, 'T_EC': True, 'T_CT': True}
 
 def expand_days(row):
     days = row["Días"].split(", ")
@@ -15,38 +17,42 @@ def expand_days(row):
         expanded_rows.append(new_row)
     return expanded_rows
 
+def obtener_dias_mes(dia_semana, available_holidays, anio=2025, mes=1, pais="CO"):
+    num_dia = dias_semana.get(dia_semana)
+    if num_dia is None:
+        return ""
+
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    festivos = holidays.country_holidays(pais, years=anio)
+
+    if available_holidays:
+        if dia_semana == "FE":
+            return ",".join(
+                str(dia) for dia in range(1, ultimo_dia + 1)
+                if f"{anio}-{mes:02d}-{dia:02d}" in festivos
+            )
+        else:
+            return ",".join(
+                str(dia) for dia in range(1, ultimo_dia + 1)
+                if calendar.weekday(anio, mes, dia) == num_dia and f"{anio}-{mes:02d}-{dia:02d}" not in festivos
+            )
+    else:
+        return ",".join(
+            str(dia) for dia in range(1, ultimo_dia + 1)
+            if calendar.weekday(anio, mes, dia) == num_dia
+        )
+
+
+df = pd.read_csv("inputs/data.csv")
 
 df_turnos = pd.DataFrame(
     [row for rows in df.apply(expand_days, axis=1) for row in rows])
 df_turnos.reset_index(drop=True, inplace=True)
 
-dias_semana = {"LU": 0, "MA": 1, "MI": 2,
-               "JU": 3, "VI": 4, "SA": 5, "DO": 6, "FE": 7}
-
-
-def obtener_dias_mes(dia_semana, anio=2025, mes=1, pais="CO"):
-    num_dia = dias_semana.get(dia_semana)
-    if num_dia is None:
-        return ""
-
-    festivos = holidays.country_holidays(pais, years=anio)
-
-    ultimo_dia = calendar.monthrange(anio, mes)[1]
-
-    if dia_semana == "FE":
-        return ",".join(
-            str(dia) for dia in range(1, ultimo_dia + 1)
-            if f"{anio}-{mes:02d}-{dia:02d}" in festivos
-        )
-    else:
-        return ",".join(
-            str(dia) for dia in range(1, ultimo_dia + 1)
-            if calendar.weekday(anio, mes, dia) == num_dia and f"{anio}-{mes:02d}-{dia:02d}" not in festivos
-        )
-
-
-df_turnos["Días del mes"] = df_turnos["Días"].apply(obtener_dias_mes)
-
+# Aplicar función en el dataframe de turnos considerando la tienda
+df_turnos["Días del mes"] = df_turnos.apply(
+    lambda row: obtener_dias_mes(row["Días"], tienda_valores.get(row["Nombre Tienda"], True)), axis=1
+)
 print(df_turnos.head())
 
 df_turnos = df_turnos[df_turnos["Días del mes"].notna() & (
@@ -70,12 +76,17 @@ df_turnos_expandidos.to_csv("turnos_expandidos.csv", index=False)
 ###########################################################################
 
 df_turnos = pd.read_csv("turnos_expandidos.csv")
-df_empleados = pd.read_csv("trabajadores.csv")
+df_empleados = pd.read_csv("inputs/trabajadores.csv")
 
 df_empleados["Incapacidad"] = df_empleados["Incapacidad"].fillna(
     "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
 df_empleados["Vacaciones"] = df_empleados["Vacaciones"].fillna(
     "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
+
+
+###########################################################################
+
+###########################################################################
 
 
 model = ConcreteModel()
@@ -116,16 +127,36 @@ model.tienda_trabajo = Constraint(turnos, empleados, rule=tienda_trabajo_rule)
 # los empleados no pueden trabajar en días de incapacidad o vacaciones
 
 
+# Restricción: los empleados no pueden trabajar en días de incapacidad o vacaciones
 def disponibilidad_rule(model, t, e):
     dia_turno = df_turnos.loc[t, "Día del mes"]
+
+    # Obtener los días no disponibles del empleado
     dias_no_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, [
-        "Incapacidad", "Vacaciones"]].sum()
+        "Incapacidad", "Vacaciones"]].values[0]
+
+    # Aplanar la lista de días no disponibles
+    dias_no_disponibles = set(
+        dias_no_disponibles[0] + dias_no_disponibles[1])  # Unir ambas listas
+
     if dia_turno in dias_no_disponibles:
         return model.x[t, e] == 0
     return Constraint.Skip
 
 
 model.disponibilidad = Constraint(turnos, empleados, rule=disponibilidad_rule)
+
+
+# Restricción: Un empleado no puede tener más de un turno por día
+def un_turno_por_dia_rule(model, e, d):
+    turnos_dia = [t for t in turnos if df_turnos.loc[t, "Día del mes"] == d]
+    return sum(model.x[t, e] for t in turnos_dia) <= 1
+
+
+dias_mes = df_turnos["Día del mes"].unique()
+model.un_turno_por_dia = Constraint(
+    empleados, dias_mes, rule=un_turno_por_dia_rule)
+
 
 # Restricción:
 # no exceder las horas mensuales
@@ -139,9 +170,22 @@ def limite_horas_rule(model, e):
 
 model.limite_horas = Constraint(empleados, rule=limite_horas_rule)
 
-# Función objetivo: minimizar la cantidad de turnos sin asignar
+# modelo y par minimizar cantidad de empleados en una tienda
+model.y = Var(empleados, domain=Binary)
+
+def activar_empleado_rule(model, e):
+    return sum(model.x[t, e] for t in turnos) <= model.y[e] * len(turnos)
+
+model.activar_empleado = Constraint(empleados, rule=activar_empleado_rule)
+
+
 model.obj = Objective(
-    expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
+    expr=sum(model.y[e] for e in empleados), sense=minimize)
+
+
+
+# Función objetivo: minimizar la cantidad de turnos sin asignar
+model.obj = Objective(expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
 
 
 solver = SolverFactory("glpk")
@@ -156,33 +200,86 @@ for t in turnos:
                 "Nombre": e,
                 "Nombre Tienda": df_turnos.loc[t, "Nombre Tienda"],
                 "Días": df_turnos.loc[t, "Días"],
-                "Cantidad de días": df_turnos.loc[t, "Cantidad de días"],
                 "Hora Inicio punto": df_turnos.loc[t, "Hora Inicio punto"],
                 "Hora Final punto": df_turnos.loc[t, "Hora Final punto"],
                 "Horas Apertura por día": df_turnos.loc[t, "Horas Apertura por día"],
                 "Inicio turno": df_turnos.loc[t, "Inicio turno"],
                 "Fin turno": df_turnos.loc[t, "Fin turno"],
                 "Horas turno": df_turnos.loc[t, "Horas turno"],
-                "Cantidad personas (con este turno)": df_turnos.loc[t, "Cantidad personas (con este turno)"],
-                "Horas a trabajar por semana": df_turnos.loc[t, "Horas a trabajar por semana"],
                 "Día del mes": df_turnos.loc[t, "Día del mes"]
             })
 
 # Guardar el resultado
 df_asignaciones = pd.DataFrame(asignaciones)
-df_asignaciones.to_csv("asignacion_turnos.csv", index=False)
+df_asignaciones.to_csv("outputs/asignacion_turnos.csv", index=False)
+
+
 
 
 # Calcular horas asignadas por trabajador
 df_horas_por_trabajador = df_asignaciones.groupby(
     "Nombre")["Horas turno"].sum().reset_index()
-df_horas_por_trabajador.to_csv("horas_por_trabajador.csv", index=False)
-print("Horas asignadas por trabajador")
+
+df_horas_por_trabajador = df_horas_por_trabajador.merge(
+    df_empleados[["Nombre", "Cantidad de horas disponibles del mes", "Vacaciones", "Incapacidad"]],
+    on="Nombre",
+    how="left"
+)
+
+df_horas_por_trabajador["Vacaciones"] = df_horas_por_trabajador["Vacaciones"].apply(lambda x: eval(x) if isinstance(x, str) else x)
+df_horas_por_trabajador["Incapacidad"] = df_horas_por_trabajador["Incapacidad"].apply(lambda x: eval(x) if isinstance(x, str) else x)
+
+df_horas_por_trabajador["Productividad (%)"] = (
+    df_horas_por_trabajador["Horas turno"] /
+    df_horas_por_trabajador["Cantidad de horas disponibles del mes"]
+) * 100
+
+df_tiendas_por_trabajador = df_asignaciones.groupby("Nombre")["Nombre Tienda"].nunique().reset_index()
+df_tiendas_por_trabajador.rename(columns={"Nombre Tienda": "Cantidad de tiendas asignadas"}, inplace=True)
+
+df_tiendas_lista = df_asignaciones.groupby("Nombre")["Nombre Tienda"].unique().reset_index()
+df_tiendas_lista.rename(columns={"Nombre Tienda": "Lista de tiendas asignadas"}, inplace=True)
+
+df_dias_trabajados = df_asignaciones.groupby("Nombre")["Día del mes"].unique().reset_index()
+df_dias_trabajados.rename(columns={"Día del mes": "Lista de días trabajados"}, inplace=True)
+df_dias_trabajados["Días trabajados"] = df_dias_trabajados["Lista de días trabajados"].apply(len)
+
+df_horas_por_trabajador = df_horas_por_trabajador.merge(df_tiendas_por_trabajador, on="Nombre", how="left")
+df_horas_por_trabajador = df_horas_por_trabajador.merge(df_tiendas_lista, on="Nombre", how="left")
+df_horas_por_trabajador = df_horas_por_trabajador.merge(df_dias_trabajados, on="Nombre", how="left")
+
+dias_totales_mes = 31
+df_horas_por_trabajador["Días de descanso"] = (
+    dias_totales_mes
+    - df_horas_por_trabajador["Días trabajados"]
+    - df_horas_por_trabajador["Vacaciones"].apply(len)
+    - df_horas_por_trabajador["Incapacidad"].apply(len)
+)
+
+df_horas_por_trabajador["Lista de días de descanso"] = df_horas_por_trabajador.apply(
+    lambda row: list(set(range(1, dias_totales_mes + 1)) - set(row["Lista de días trabajados"]) - set(row["Vacaciones"]) - set(row["Incapacidad"])),
+    axis=1
+)
+
+df_horas_por_trabajador["Días de vacaciones"] = df_horas_por_trabajador["Vacaciones"].apply(len)
+df_horas_por_trabajador["Lista de días de vacaciones"] = df_horas_por_trabajador["Vacaciones"]
+
+df_horas_por_trabajador["Días de incapacidad"] = df_horas_por_trabajador["Incapacidad"].apply(len)
+df_horas_por_trabajador["Lista de días de incapacidad"] = df_horas_por_trabajador["Incapacidad"]
+
+df_horas_por_trabajador.drop(columns=["Vacaciones", "Incapacidad"], inplace=True)
+
+df_horas_por_trabajador.to_csv("outputs/horas_por_trabajador.csv", index=False)
+
+print("Horas asignadas y productividad por trabajador con métricas adicionales")
 print(df_horas_por_trabajador.head())
+
+
+
 
 # Calcular horas asignadas por tienda
 df_horas_por_tienda = df_asignaciones.groupby(
     "Nombre Tienda")["Horas turno"].sum().reset_index()
-df_horas_por_tienda.to_csv("horas_por_tienda.csv", index=False)
+df_horas_por_tienda.to_csv("outputs/horas_por_tienda.csv", index=False)
 print("Horas asignadas por tienda")
 print(df_horas_por_tienda.head())
