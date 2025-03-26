@@ -57,22 +57,9 @@ def procesar_datos():
     df_turnos_expandidos = df_turnos_expandidos.drop(columns=["Días del mes"])
     df_turnos_expandidos.to_csv("../intermediate_data/turnos_expandidos.csv", index=False)
 
-def optimizar_turnos():
+def optimizar_turnos(df_turnos, df_empleados):
 
-    df_turnos = pd.read_csv("../intermediate_data/turnos_expandidos.csv")
-    df_empleados = pd.read_csv("../inputs/trabajadores.csv")
-
-    df_empleados["Incapacidad"] = df_empleados["Incapacidad"].fillna(
-        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
-    df_empleados["Vacaciones"] = df_empleados["Vacaciones"].fillna(
-        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
-
-
-    ###########################################################################
-
-    ###########################################################################
-
-
+    # Crear el modelo de optimización
     model = ConcreteModel()
 
     empleados = df_empleados["Nombre"].tolist()
@@ -200,16 +187,9 @@ def optimizar_turnos():
     # Guardar el resultado
     df_asignaciones = pd.DataFrame(asignaciones)
     df_asignaciones.to_csv("../outputs/asignacion_turnos.csv", index=False)
-    return df_empleados, df_asignaciones
+    return df_asignaciones
 
-
-def main():
-
-    # Procesar los datos
-    procesar_datos()
-
-    df_empleados, df_asignaciones = optimizar_turnos()
-
+def reporte_por_trabajador(df_asignaciones, df_empleados):
 
     # Calcular horas asignadas por trabajador
     df_horas_por_trabajador = df_asignaciones.groupby(
@@ -270,14 +250,42 @@ def main():
     print(df_horas_por_trabajador.head())
 
 
-
+def reporte_por_tienda(df_asignaciones, df_empleados):
 
     # Calcular horas asignadas por tienda
     df_horas_por_tienda = df_asignaciones.groupby(
         "Nombre Tienda")["Horas turno"].sum().reset_index()
     df_horas_por_tienda.to_csv("../outputs/horas_por_tienda.csv", index=False)
+
     print("Horas asignadas por tienda")
     print(df_horas_por_tienda.head())
+
+
+def main():
+
+    # Procesar los datos
+    procesar_datos()
+
+    
+    df_turnos = pd.read_csv("../intermediate_data/turnos_expandidos.csv")
+    df_empleados = pd.read_csv("../inputs/trabajadores.csv")
+
+    df_empleados["Incapacidad"] = df_empleados["Incapacidad"].fillna(
+        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
+    df_empleados["Vacaciones"] = df_empleados["Vacaciones"].fillna(
+        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
+
+
+    # Optimizar los turnos
+    df_asignaciones = optimizar_turnos(df_turnos, df_empleados)
+
+
+    # Generar el reporte por trabajador
+    reporte_por_trabajador(df_asignaciones, df_empleados)
+
+    # Generar el reporte por tienda
+    reporte_por_tienda(df_asignaciones, df_empleados)
+
 
 
 if __name__ == "__main__":
