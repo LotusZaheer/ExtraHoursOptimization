@@ -30,6 +30,13 @@ productividad_json = productividad_data.set_index('Nombre').to_dict(orient='inde
 first_weekday, _ = calendar.monthrange(2025, 1)
 weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
+colores_especiales = {
+    "descanso": "rgba(206, 206, 206, 0.5)",  # Blanco con opacidad
+    "vacaciones": "rgba(0, 255, 0, 0.5)",  # Verde con opacidad
+    "incapacidad": "rgba(255, 0, 0, 0.5)",  # Rojo con opacidad
+    "trabajados": "rgba(0, 0, 255, 0.5)"  # Azul con opacidad
+}
+
 # Generar HTML
 html = f"""<!DOCTYPE html>
 <html lang='es'>
@@ -111,9 +118,9 @@ html += """
                 var data = productividad[empleado];
                 var summaryHTML = `<h2>Resumen de ${empleado}</h2>`;
                 summaryHTML += `<p><strong>Productividad:</strong> ${data['Productividad (%)'].toFixed(2)}%</p>`;
-                summaryHTML += `<p><strong>Días de descanso:</strong> ${data['Días de descanso']} (${data['Lista de días de descanso']})</p>`;
-                summaryHTML += `<p><strong>Días de vacaciones:</strong> ${data['Días de vacaciones']} (${data['Lista de días de vacaciones']})</p>`;
-                summaryHTML += `<p><strong>Días de incapacidad:</strong> ${data['Días de incapacidad']} (${data['Lista de días de incapacidad']})</p>`;
+                summaryHTML += `<p><strong>Días de descanso:</strong> ${data['Días de descanso']} (${data['Lista de días descanso']})</p>`;
+                summaryHTML += `<p><strong>Días de vacaciones:</strong> ${data['Días de vacaciones']} (${data['Lista de días vacaciones']})</p>`;
+                summaryHTML += `<p><strong>Días de incapacidad:</strong> ${data['Días de incapacidad']} (${data['Lista de días incapacidad']})</p>`;
                 document.getElementById('summary').innerHTML = summaryHTML;
             }
 
