@@ -5,7 +5,7 @@ import calendar
 
 
 def load_data():
-    df = pd.read_csv('outputs/asignacion_turnos.csv')
+    df = pd.read_csv('../outputs/asignacion_turnos.csv')
     return df
 
 
@@ -13,7 +13,7 @@ data = load_data()
 
 
 def generate_html(data):
-    empleados = data['Nombre'].unique()
+    tiendas = data['Nombre Tienda'].unique()
     data_json = json.dumps(data.to_dict(orient='records'))
 
     # Obtener el primer día de enero de 2025
@@ -26,7 +26,7 @@ def generate_html(data):
     <head>
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <title>Calendario de Turnos</title>
+        <title>Turnos por Tienda</title>
         <style>
             body {{ font-family: Arial, sans-serif; }}
             .calendar-container {{ width: 100%; max-width: 800px; margin: auto; }}
@@ -37,13 +37,13 @@ def generate_html(data):
         </style>
     </head>
     <body>
-        <h1>Calendario de Turnos</h1>
-        <label for='empleado'>Empleado:</label>
-        <select id='empleado'>
-            <option value=''>Seleccione un empleado</option>
+        <h1>Turnos por Tienda</h1>
+        <label for='tienda'>Tienda:</label>
+        <select id='tienda'>
+            <option value=''>Seleccione una tienda</option>
     """
-    for empleado in empleados:
-        html += f"<option value='{empleado}'>{empleado}</option>"
+    for tienda in tiendas:
+        html += f"<option value='{tienda}'>{tienda}</option>"
 
     html += """
         </select>
@@ -73,16 +73,16 @@ def generate_html(data):
         </div>
         <script>
             var data = {data_json};
-            document.getElementById('empleado').addEventListener('change', function() {{
-                var empleado = this.value;
+            document.getElementById('tienda').addEventListener('change', function() {{
+                var tienda = this.value;
                 var calendarDays = document.querySelectorAll('.day');
                 calendarDays.forEach(day => day.innerHTML = `<div class='day-number'>${{day.getAttribute('data-day')}}</div>`);
                 
-                var turnos = data.filter(t => t['Nombre'] === empleado);
+                var turnos = data.filter(t => t['Nombre Tienda'] === tienda);
                 turnos.forEach(turno => {{
                     var dayElement = document.querySelector(`.day[data-day='${{turno['Día del mes']}}']`);
                     if (dayElement) {{
-                        dayElement.innerHTML += `<br>${{turno['Nombre Tienda']}} (${{turno['Inicio turno']}} - ${{turno['Fin turno']}})`;
+                        dayElement.innerHTML += `<br>${{turno['Nombre']}} (${{turno['Inicio turno']}} - ${{turno['Fin turno']}})`;
                     }}
                 }});
             }});
@@ -90,7 +90,7 @@ def generate_html(data):
     </body>
     </html>"""
 
-    with open('calendario.html', 'w', encoding='utf-8') as f:
+    with open('turnos_tienda.html', 'w', encoding='utf-8') as f:
         f.write(html)
 
 
