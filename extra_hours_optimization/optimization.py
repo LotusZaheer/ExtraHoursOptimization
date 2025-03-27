@@ -46,11 +46,10 @@ def optimizar_turnos(df_turnos, df_empleados):
 
         # Obtener los días no disponibles del empleado
         dias_no_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, [
-            "Descanso", "Incapacidad", "Vacaciones"]].values[0]
+            "Incapacidad", "Vacaciones", "Descanso", ]].values[0]
 
         # Aplanar la lista de días no disponibles
-        dias_no_disponibles = set(
-            dias_no_disponibles[0] + dias_no_disponibles[1])  # Unir ambas listas
+        dias_no_disponibles = set(sum(dias_no_disponibles, []))
 
         if dia_turno in dias_no_disponibles:
             return model.x[t, e] == 0
@@ -130,15 +129,14 @@ def optimizar_turnos(df_turnos, df_empleados):
 
 
     # Función objetivo: minimizar la cantidad de turnos sin asignar
-    model.obj = Objective(expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
+    # model.obj = Objective(expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
 
-    """
     model.obj = Objective(
         expr=sum(model.x[t, e] for t in turnos for e in empleados)  
             - 0.1 * sum(model.h_extra[t, e] for t in turnos for e in empleados),  # Penalizamos las horas extra
         sense=maximize
     )
-    """
+    
 
 
     solver = SolverFactory("glpk")
