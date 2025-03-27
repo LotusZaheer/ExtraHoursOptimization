@@ -90,7 +90,7 @@ def generate_html(data):
     </body>
     </html>"""
 
-    with open('turnos_tienda.html', 'w', encoding='utf-8') as f:
+    with open('../html/turnos_tienda.html', 'w', encoding='utf-8') as f:
         f.write(html)
 
 
