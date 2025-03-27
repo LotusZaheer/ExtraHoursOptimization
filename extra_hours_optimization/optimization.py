@@ -1,6 +1,9 @@
 
-from pyomo.environ import Constraint, ConcreteModel, Var, Binary, Objective, minimize, maximize, SolverFactory
 import pandas as pd
+from pyomo.environ import (Constraint, ConcreteModel, Var, 
+                           Binary, NonNegativeReals, 
+                           minimize, maximize, 
+                           Objective, SolverFactory)
 
 
 def optimizar_turnos(df_turnos, df_empleados):
@@ -105,9 +108,37 @@ def optimizar_turnos(df_turnos, df_empleados):
     model.obj = Objective(expr=sum(model.z[e, t] for e in empleados for t in df_turnos["Nombre Tienda"].unique()), sense=minimize)
     ###########################################################################
 
+    ###########################################################################
+    #Variable para las horas extra
+    model.h_extra = Var(turnos, empleados, domain=NonNegativeReals)
+
+    # Restricción: las horas extra no pueden ser negativas
+    def limite_horas_rule(model, e):
+        horas_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
+        horas_extra_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, "Horas extra disponibles"].values[0]
+        return sum(model.x[t, e] * df_turnos.loc[t, "Horas turno"] + model.h_extra[t, e] for t in turnos) <= horas_disponibles + horas_extra_disponibles
+
+    model.limite_horas = Constraint(empleados, rule=limite_horas_rule)
+
+    # Restricción: las horas extra no pueden exceder el tiempo disponible
+    def restriccion_horas_extra(model, t, e):
+        return model.h_extra[t, e] <= model.x[t, e] * (df_turnos.loc[t, "Hora Final punto"] - df_turnos.loc[t, "Fin turno"])
+
+    model.restriccion_horas_extra = Constraint(turnos, empleados, rule=restriccion_horas_extra)
+
+    ###########################################################################
+
 
     # Función objetivo: minimizar la cantidad de turnos sin asignar
     model.obj = Objective(expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
+
+    """
+    model.obj = Objective(
+        expr=sum(model.x[t, e] for t in turnos for e in empleados)  
+            - 0.1 * sum(model.h_extra[t, e] for t in turnos for e in empleados),  # Penalizamos las horas extra
+        sense=maximize
+    )
+    """
 
 
     solver = SolverFactory("glpk")
@@ -128,7 +159,8 @@ def optimizar_turnos(df_turnos, df_empleados):
                     "Inicio turno": df_turnos.loc[t, "Inicio turno"],
                     "Fin turno": df_turnos.loc[t, "Fin turno"],
                     "Horas turno": df_turnos.loc[t, "Horas turno"],
-                    "Día del mes": df_turnos.loc[t, "Día del mes"]
+                    "Día del mes": df_turnos.loc[t, "Día del mes"],
+                    "Horas extra": model.h_extra[t, e].value if model.h_extra[t, e].value > 0 else 0
                 })
 
     # Guardar el resultado

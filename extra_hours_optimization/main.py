@@ -3,7 +3,7 @@ import pandas as pd
 
 from data_processing import process_data
 from optimization import optimizar_turnos
-from reports import reporte_por_trabajador, reporte_por_tienda
+from reports import report_by_worker, report_by_shop
 
 
 def main():
@@ -26,6 +26,8 @@ def main():
     df_turnos = pd.read_csv("../intermediate_data/turnos_expandidos.csv")
     df_empleados = pd.read_csv("../inputs/trabajadores.csv")
 
+    df_empleados["Horas extra disponibles"] = df_empleados["Horas extra disponibles"].fillna(0)
+
     # Convertimos las columnas de días a listas
     df_empleados["Descanso"] = df_empleados["Descanso"].fillna(
         "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
@@ -39,10 +41,10 @@ def main():
     df_asignaciones = optimizar_turnos(df_turnos, df_empleados)
 
     # Generamos el reporte por trabajador
-    reporte_por_trabajador(df_asignaciones, df_empleados)
+    report_by_worker(df_asignaciones, df_empleados)
 
     # Generamos el reporte por tienda
-    reporte_por_tienda(df_asignaciones, df_empleados)
+    report_by_shop(df_asignaciones, df_empleados)
 
 
 

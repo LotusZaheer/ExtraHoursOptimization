@@ -1,10 +1,10 @@
 
 import numpy as np
 
-def reporte_por_trabajador(df_asignaciones, df_empleados):
+def report_by_worker(df_asignaciones, df_empleados):
 
     df_horas_por_trabajador = df_asignaciones.groupby(
-        "Nombre")["Horas turno"].sum().reset_index()
+        "Nombre")[["Horas turno", "Horas extra"]].sum().reset_index()
 
     df_horas_por_trabajador = df_horas_por_trabajador.merge(
         df_empleados[["Nombre", "Cantidad de horas disponibles del mes", "Vacaciones", "Incapacidad"]],
@@ -16,7 +16,7 @@ def reporte_por_trabajador(df_asignaciones, df_empleados):
     df_horas_por_trabajador["Incapacidad"] = df_horas_por_trabajador["Incapacidad"].apply(lambda x: eval(x) if isinstance(x, str) else x)
 
     df_horas_por_trabajador["Productividad (%)"] = (
-        df_horas_por_trabajador["Horas turno"] /
+        (df_horas_por_trabajador["Horas turno"] + df_horas_por_trabajador["Horas extra"] ) /
         df_horas_por_trabajador["Cantidad de horas disponibles del mes"]
     ) * 100
 
@@ -62,13 +62,34 @@ def reporte_por_trabajador(df_asignaciones, df_empleados):
 
     print("Horas asignadas y productividad por trabajador con métricas adicionales")
     print(df_horas_por_trabajador.head())
+    
+    # Identificar empleados sin asignaciones
+    empleados_con_asignaciones = set(df_asignaciones["Nombre"].unique())
+    todos_los_empleados = set(df_empleados["Nombre"].unique())
+    empleados_sin_asignaciones = todos_los_empleados - empleados_con_asignaciones
+    
+    print("Empleados sin asignaciones:", empleados_sin_asignaciones)
 
-def reporte_por_tienda(df_asignaciones, df_empleados):
 
-    # Calcular horas asignadas por tienda
-    df_horas_por_tienda = df_asignaciones.groupby(
-        "Nombre Tienda")["Horas turno"].sum().reset_index()
-    df_horas_por_tienda.to_csv("../outputs/horas_por_tienda.csv", index=False)
+def report_by_shop(df_asignaciones, df_empleados):
 
-    print("Horas asignadas por tienda")
-    print(df_horas_por_tienda.head())
+    df_horas_por_tienda = df_asignaciones.groupby("Nombre Tienda")[["Horas turno", "Horas extra"]].sum().reset_index()
+
+    df_trabajadores_por_tienda = df_asignaciones.groupby("Nombre Tienda")["Nombre"].nunique().reset_index()
+    df_trabajadores_por_tienda.rename(columns={"Nombre": "Cantidad de trabajadores"}, inplace=True)
+
+    df_lista_trabajadores = df_asignaciones.groupby("Nombre Tienda")["Nombre"].unique().reset_index()
+    df_lista_trabajadores.rename(columns={"Nombre": "Lista de trabajadores"}, inplace=True)
+    df_lista_trabajadores["Lista de trabajadores"] = df_lista_trabajadores["Lista de trabajadores"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+
+    df_dias_trabajados = df_asignaciones.groupby("Nombre Tienda")["Día del mes"].nunique().reset_index()
+    df_dias_trabajados.rename(columns={"Día del mes": "Días trabajados"}, inplace=True)
+
+    df_reporte_tienda = df_horas_por_tienda.merge(df_trabajadores_por_tienda, on="Nombre Tienda", how="left")
+    df_reporte_tienda = df_reporte_tienda.merge(df_lista_trabajadores, on="Nombre Tienda", how="left")
+    df_reporte_tienda = df_reporte_tienda.merge(df_dias_trabajados, on="Nombre Tienda", how="left")
+
+    df_reporte_tienda.to_csv("../outputs/horas_por_tienda.csv", index=False)
+    
+    print("Reporte de horas y métricas por tienda")
+    print(df_reporte_tienda.head())
