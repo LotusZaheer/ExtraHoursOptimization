@@ -5,10 +5,9 @@ from optimization import optimizar_turnos
 from reports import report_by_worker, report_by_shop
 from logger import setup_logger
 from config import Config
-import logger
+logger = setup_logger()
 
 def main():
-    logger = setup_logger()
     logger.info("Iniciando proceso de optimización de horas extra")
 
     # Cargamos la configuración

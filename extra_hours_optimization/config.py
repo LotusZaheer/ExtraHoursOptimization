@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 class Config:
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "../config.yaml"):
         self.config_path = Path(config_path)
         self.config = self._load_config()
     
