@@ -4,9 +4,7 @@ import pandas as pd
 import holidays
 import calendar
 
-dias_semana = {"LU": 0, "MA": 1, "MI": 2, "JU": 3, "VI": 4, "SA": 5, "DO": 6, "FE": 7, "MN": 8}
-
-tienda_valores = {'T_MB': False, 'T_EC': True, 'T_CT': True}
+days_of_week = {"LU": 0, "MA": 1, "MI": 2, "JU": 3, "VI": 4, "SA": 5, "DO": 6, "FE": 7, "MN": 8}
 
 
 def expand_days(row):
@@ -19,48 +17,63 @@ def expand_days(row):
     return expanded_rows
 
 
-def obtener_dias_mes(dia_semana, available_holidays, anio=2025, mes=1, pais="CO"):
-    num_dia = dias_semana.get(dia_semana)
-    if num_dia is None:
+def get_days_of_month(day_of_week, available_holidays, maintenance_days, year=2025, month=1, country="CO"):
+    day_num = days_of_week.get(day_of_week)
+    if day_num is None:
         return ""
 
-    ultimo_dia = calendar.monthrange(anio, mes)[1]
-    festivos = holidays.country_holidays(pais, years=anio)
+    last_day = calendar.monthrange(year, month)[1]
+    holidays_list = holidays.country_holidays(country, years=year)
+    maintenance_days = maintenance_days
 
     if available_holidays:
-        if dia_semana == "FE":
+        if day_of_week == "FE":
             return ",".join(
-                str(dia) for dia in range(1, ultimo_dia + 1)
-                if f"{anio}-{mes:02d}-{dia:02d}" in festivos
+                str(day) for day in range(1, last_day + 1)
+                if f"{year}-{month:02d}-{day:02d}" in holidays_list
             )
         else:
             return ",".join(
-                str(dia) for dia in range(1, ultimo_dia + 1)
-                if calendar.weekday(anio, mes, dia) == num_dia and f"{anio}-{mes:02d}-{dia:02d}" not in festivos
+                str(day) for day in range(1, last_day + 1)
+                if calendar.weekday(year, month, day) == day_num and f"{year}-{month:02d}-{day:02d}" not in holidays_list
+                and day not in maintenance_days
             )
     else:
         return ",".join(
-            str(dia) for dia in range(1, ultimo_dia + 1)
-            if calendar.weekday(anio, mes, dia) == num_dia
+            str(day) for day in range(1, last_day + 1)
+            if calendar.weekday(year, month, day) == day_num
+            and day not in maintenance_days
         )
 
 
-def procesar_datos():
+def process_data(init_data):
+
+    holidays_are_availables = init_data['holidays_are_availables']
+    month = init_data['month']
+    year = init_data['year']
+    country = init_data['country']
+    maintenance_days_by_store = init_data['maintenance_days_by_store']
 
     df = pd.read_csv("../inputs/data.csv")
 
-    df_turnos = pd.DataFrame([row for rows in df.apply(expand_days, axis=1) for row in rows])
-    df_turnos.reset_index(drop=True, inplace=True)
+    df_shifts = pd.DataFrame([row for rows in df.apply(expand_days, axis=1) for row in rows])
+    df_shifts.reset_index(drop=True, inplace=True)
 
-    df_turnos["Días del mes"] = df_turnos.apply(lambda row: obtener_dias_mes(row["Días"], tienda_valores.get(row["Nombre Tienda"], True)), axis=1)
-    df_turnos = df_turnos[df_turnos["Días del mes"].notna() & (df_turnos["Días del mes"] != "")]
+    df_shifts["Días del mes"] = df_shifts.apply(lambda row: get_days_of_month(row["Días"],
+                                                                                 holidays_are_availables.get(row["Nombre Tienda"], True),
+                                                                                 maintenance_days_by_store.get(row["Nombre Tienda"], set()),
+                                                                                 year=year,
+                                                                                 month=month,
+                                                                                 country=country
+                                                                                ), axis=1)
+    df_shifts = df_shifts[df_shifts["Días del mes"].notna() & (df_shifts["Días del mes"] != "")]
 
-    df_turnos_expandidos = df_turnos.assign(
-        **{"Día del mes": df_turnos["Días del mes"].str.split(",")}).explode("Día del mes")
-    df_turnos_expandidos = df_turnos_expandidos.dropna(subset=["Día del mes"])
+    df_shifts_expanded = df_shifts.assign(
+        **{"Día del mes": df_shifts["Días del mes"].str.split(",")}).explode("Día del mes")
+    df_shifts_expanded = df_shifts_expanded.dropna(subset=["Día del mes"])
     
-    df_turnos_expandidos["Día del mes"] = pd.to_numeric(
-        df_turnos_expandidos["Día del mes"], errors="coerce").dropna().astype(int)
-    df_turnos_expandidos = df_turnos_expandidos.drop(columns=["Días del mes"])
+    df_shifts_expanded["Día del mes"] = pd.to_numeric(
+        df_shifts_expanded["Día del mes"], errors="coerce").dropna().astype(int)
+    df_shifts_expanded = df_shifts_expanded.drop(columns=["Días del mes"])
     
-    df_turnos_expandidos.to_csv("../intermediate_data/turnos_expandidos.csv", index=False)
+    df_shifts_expanded.to_csv("../intermediate_data/turnos_expandidos.csv", index=False)
