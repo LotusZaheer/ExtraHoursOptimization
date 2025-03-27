@@ -2,6 +2,7 @@ import pandas as pd
 import calendar
 from pyomo.environ import *
 import holidays
+import numpy as np
 
 dias_semana = {"LU": 0, "MA": 1, "MI": 2,
                "JU": 3, "VI": 4, "SA": 5, "DO": 6, "FE": 7, "MN": 8}
@@ -214,10 +215,12 @@ def reporte_por_trabajador(df_asignaciones, df_empleados):
 
     df_tiendas_lista = df_asignaciones.groupby("Nombre")["Nombre Tienda"].unique().reset_index()
     df_tiendas_lista.rename(columns={"Nombre Tienda": "Lista de tiendas asignadas"}, inplace=True)
+    df_tiendas_lista["Lista de tiendas asignadas"] = df_tiendas_lista["Lista de tiendas asignadas"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
 
     df_dias_trabajados = df_asignaciones.groupby("Nombre")["Día del mes"].unique().reset_index()
     df_dias_trabajados.rename(columns={"Día del mes": "Lista de días trabajados"}, inplace=True)
     df_dias_trabajados["Días trabajados"] = df_dias_trabajados["Lista de días trabajados"].apply(len)
+    df_dias_trabajados["Lista de días trabajados"] = df_dias_trabajados["Lista de días trabajados"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x).apply(lambda x: sorted(x) if isinstance(x, list) else x)
 
     df_horas_por_trabajador = df_horas_por_trabajador.merge(df_tiendas_por_trabajador, on="Nombre", how="left")
     df_horas_por_trabajador = df_horas_por_trabajador.merge(df_tiendas_lista, on="Nombre", how="left")
@@ -231,16 +234,17 @@ def reporte_por_trabajador(df_asignaciones, df_empleados):
         - df_horas_por_trabajador["Incapacidad"].apply(len)
     )
 
-    df_horas_por_trabajador["Lista de días de descanso"] = df_horas_por_trabajador.apply(
+    df_horas_por_trabajador["Lista de días descanso"] = df_horas_por_trabajador.apply(
         lambda row: list(set(range(1, dias_totales_mes + 1)) - set(row["Lista de días trabajados"]) - set(row["Vacaciones"]) - set(row["Incapacidad"])),
         axis=1
-    )
+    ).apply(lambda x: sorted(x) if isinstance(x, list) else x)
+
 
     df_horas_por_trabajador["Días de vacaciones"] = df_horas_por_trabajador["Vacaciones"].apply(len)
-    df_horas_por_trabajador["Lista de días de vacaciones"] = df_horas_por_trabajador["Vacaciones"]
+    df_horas_por_trabajador["Lista de días vacaciones"] = df_horas_por_trabajador["Vacaciones"].apply(lambda x: sorted(x) if isinstance(x, list) else x)
 
     df_horas_por_trabajador["Días de incapacidad"] = df_horas_por_trabajador["Incapacidad"].apply(len)
-    df_horas_por_trabajador["Lista de días de incapacidad"] = df_horas_por_trabajador["Incapacidad"]
+    df_horas_por_trabajador["Lista de días incapacidad"] = df_horas_por_trabajador["Incapacidad"].apply(lambda x: sorted(x) if isinstance(x, list) else x)
 
     df_horas_por_trabajador.drop(columns=["Vacaciones", "Incapacidad"], inplace=True)
 
@@ -248,7 +252,6 @@ def reporte_por_trabajador(df_asignaciones, df_empleados):
 
     print("Horas asignadas y productividad por trabajador con métricas adicionales")
     print(df_horas_por_trabajador.head())
-
 
 def reporte_por_tienda(df_asignaciones, df_empleados):
 
@@ -266,7 +269,6 @@ def main():
     # Procesar los datos
     procesar_datos()
 
-    
     df_turnos = pd.read_csv("../intermediate_data/turnos_expandidos.csv")
     df_empleados = pd.read_csv("../inputs/trabajadores.csv")
 
