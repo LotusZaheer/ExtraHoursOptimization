@@ -1,3 +1,4 @@
-holidays
 pandas
 pyomo
+holidays
+numpy
