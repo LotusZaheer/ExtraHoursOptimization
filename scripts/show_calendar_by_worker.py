@@ -1,6 +1,3 @@
-
-
-
 import pandas as pd
 import json
 import calendar
@@ -33,6 +30,7 @@ productividad_json = productividad_data.set_index('Nombre').to_dict(orient='inde
 first_weekday, _ = calendar.monthrange(2025, 1)
 weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
+# Colores especiales para días
 colores_especiales = {
     "descanso": "rgba(206, 206, 206, 0.5)",  # Blanco con opacidad
     "vacaciones": "rgba(0, 255, 0, 0.5)",  # Verde con opacidad
@@ -58,6 +56,17 @@ html = f"""<!DOCTYPE html>
         .day-number {{ position: absolute; top: 5px; right: 5px; font-size: 12px; font-weight: bold; }}
         .legend {{ display: flex; flex-wrap: wrap; margin-top: 20px; }}
         .legend-item {{ margin-right: 10px; padding: 5px 10px; border-radius: 5px; font-size: 14px; }}
+        
+        .descanso {{ background: {colores_especiales['descanso']}; }}
+        .vacaciones {{ background: {colores_especiales['vacaciones']}; }}
+        .incapacidad {{ background: {colores_especiales['incapacidad']}; }}
+        .trabajado {{ background: {colores_especiales['trabajados']}; }}
+
+        .descanso-title {{ background: {colores_especiales['descanso']}; padding: 2px 5px; border-radius: 3px; }}
+        .vacaciones-title {{ background: {colores_especiales['vacaciones']}; padding: 2px 5px; border-radius: 3px; }}
+        .incapacidad-title {{ background: {colores_especiales['incapacidad']}; padding: 2px 5px; border-radius: 3px; }}
+        .trabajado-title {{ background: {colores_especiales['trabajados']}; padding: 2px 5px; border-radius: 3px; }}
+
     </style>
 </head>
 <body>
@@ -85,7 +94,6 @@ for _ in range(first_weekday):
     html += "<div class='day'></div>"
 
 for day in range(1, 32):
-    print(f"Generando día {day}...")
     html += f"""
         <div class='day' data-day='{day}'>
             <div class='day-number'>{day}</div>
@@ -115,22 +123,48 @@ html += """
         document.getElementById('empleado').addEventListener('change', function() {
             var empleado = this.value;
             var calendarDays = document.querySelectorAll('.day');
-            calendarDays.forEach(day => day.innerHTML = `<div class='day-number'>${day.getAttribute('data-day')}</div>`);
+            calendarDays.forEach(day => {
+                day.classList.remove('descanso', 'vacaciones', 'incapacidad', 'trabajado');
+                day.innerHTML = `<div class='day-number'>${day.getAttribute('data-day')}</div>`;
+            });
 
             if (empleado) {
                 var data = productividad[empleado];
                 var summaryHTML = `<h2>Resumen de ${empleado}</h2>`;
-                summaryHTML += `<p><strong>Productividad:</strong> ${data['Productividad (%)'].toFixed(2)}%</p>`;
-                summaryHTML += `<p><strong>Días de descanso:</strong> ${data['Días de descanso']} (${data['Lista de días descanso']})</p>`;
-                summaryHTML += `<p><strong>Días de vacaciones:</strong> ${data['Días de vacaciones']} (${data['Lista de días vacaciones']})</p>`;
-                summaryHTML += `<p><strong>Días de incapacidad:</strong> ${data['Días de incapacidad']} (${data['Lista de días incapacidad']})</p>`;
-                document.getElementById('summary').innerHTML = summaryHTML;
-            }
+                summaryHTML += `<p><span class="trabajado-title"><strong>Productividad:</strong></span>${data['Productividad (%)'].toFixed(2)}%</p>`;
+                summaryHTML += `<p><span ><strong>Horas trabajadas:</strong></span>${data['Horas turno']}</p>`;
+                summaryHTML += `<p><span ><strong>Horas disponibles:</strong></span>${data['Cantidad de horas disponibles del mes']}</p>`;
 
-            var turnosEmpleado = turnos.filter(t => t['Nombre'] === empleado);
-            turnosEmpleado.forEach(turno => {
-                var dayElement = document.querySelector(`.day[data-day='${turno['Día del mes']}']`);
-                if (dayElement) {
+                
+                summaryHTML += `<p><span class="descanso-title"><strong>Días de descanso:</strong></span> (${data['Días de descanso']}) : 
+                  ${data['Lista de días descanso'].replace(/[\[\]"]/g, '').split(', ')}</p>`;
+                summaryHTML += `<p><span class="vacaciones-title"><strong>Días de vacaciones:</strong></span> (${data['Días de vacaciones']}) :
+                  ${data['Lista de días vacaciones'].replace(/[\[\]"]/g, '').split(', ')}</p>`;
+                summaryHTML += `<p><span class="incapacidad-title"><strong>Días de incapacidad:</strong></span> (${data['Días de incapacidad']} ) :
+                  ${data['Lista de días incapacidad'].replace(/[\[\]"]/g, '').split(', ')}</p>`;
+
+                document.getElementById('summary').innerHTML = summaryHTML;
+
+
+                // Aplicar colores según el tipo de día
+                ['descanso', 'vacaciones', 'incapacidad'].forEach(tipo => {
+                    var dias = data[`Lista de días ${tipo}`];
+                    if (dias) {
+                        dias = dias.replace(/[\[\]"]/g, '');
+                        dias.split(', ').forEach(dia => {
+                            var dayElement = document.querySelector(`.day[data-day='${dia}']`);
+                            if (dayElement) {
+                                dayElement.classList.add(tipo);
+                            }
+                        });
+                    }
+                });
+
+                var turnosEmpleado = turnos.filter(t => t['Nombre'] === empleado);
+                turnosEmpleado.forEach(turno => {
+                    var dayElement = document.querySelector(`.day[data-day='${turno['Día del mes']}']`);
+                    if (dayElement) {
+
                     var tiendaColor = '""" + json.dumps(colores_tiendas) + """'[turno['Nombre Tienda']];
                     var horario = turno['Inicio turno'] + ' - ' + turno['Fin turno'];
                     var horarioColor = '""" + json.dumps(colores_horarios) + """'[horario];
@@ -140,8 +174,11 @@ html += """
                         <span style="background: ${tiendaColor}; padding: 2px 5px; border-radius: 3px;">${turno['Nombre Tienda']}</span>
                         <span style="background: ${horarioColor}; padding: 2px 5px; border-radius: 3px;">${horario}</span>
                     `;
-                }
-            });
+
+                        dayElement.classList.add('trabajado');
+                    }
+                });
+            }
         });
     </script>
 </body>
@@ -151,7 +188,3 @@ with open('calendario.html', 'w', encoding='utf-8') as f:
     f.write(html)
 
 print("Archivo 'calendario.html' generado con éxito.")
-
-
-
-
