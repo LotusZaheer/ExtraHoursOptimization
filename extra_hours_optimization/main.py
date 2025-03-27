@@ -8,6 +8,9 @@ from config import Config
 logger = setup_logger()
 
 def main():
+    logger.info("")
+    logger.info("#################################################")
+    logger.info("")
     logger.info("Iniciando proceso de optimización de horas extra")
 
     # Cargamos la configuración

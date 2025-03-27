@@ -77,7 +77,7 @@ Genera una visualización HTML (`turnos_empleado.html`) que muestra:
    ```
 3. Ejecuta el programa:
    ```bash
-   python main.py
+   cd ../extra_hours_optimization/ ; python main.py; cd ../scripts ; python show_calendar_by_worker.py
    ```
 
 ## Salidas

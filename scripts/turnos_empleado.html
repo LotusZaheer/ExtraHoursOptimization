@@ -140,7 +140,7 @@
         </div>
 
         <div class='legend'>
-            <h3>Colores por tienda:</h3><div class='legend-item' style='background: #1f77b4;'>T_MB</div><div class='legend-item' style='background: #ff7f0e;'>T_CT</div><div class='legend-item' style='background: #2ca02c;'>T_EC</div>
+            <h3>Colores por tienda:</h3><div class='legend-item' style='background: #1f77b4;'>T_CT</div><div class='legend-item' style='background: #ff7f0e;'>T_MB</div><div class='legend-item' style='background: #2ca02c;'>T_EC</div>
             <br>
             <h3>Colores por horario:</h3><div class='legend-item' style='background: #1f77b4;'>9 - 18</div><div class='legend-item' style='background: #ff7f0e;'>7 - 15</div><div class='legend-item' style='background: #2ca02c;'>12 - 20</div><div class='legend-item' style='background: #d62728;'>6 - 14</div><div class='legend-item' style='background: #9467bd;'>13 - 20</div><div class='legend-item' style='background: #8c564b;'>13 - 21</div>
         </div>
@@ -195,7 +195,7 @@
                     var dayElement = document.querySelector(`.day[data-day='${turno['Día del mes']}']`);
                     if (dayElement) {
 
-                    var tiendaColor = {"T_MB": "#1f77b4", "T_CT": "#ff7f0e", "T_EC": "#2ca02c"}[turno['Nombre Tienda']];
+                    var tiendaColor = {"T_CT": "#1f77b4", "T_MB": "#ff7f0e", "T_EC": "#2ca02c"}[turno['Nombre Tienda']];
                     var horario = turno['Inicio turno'] + ' - ' + turno['Fin turno'];
                     var horarioColor = {"9 - 18": "#1f77b4", "7 - 15": "#ff7f0e", "12 - 20": "#2ca02c", "6 - 14": "#d62728", "13 - 20": "#9467bd", "13 - 21": "#8c564b"}[horario];
                     
