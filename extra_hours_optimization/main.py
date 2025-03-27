@@ -1,25 +1,25 @@
-
 import pandas as pd
 
 from data_processing import process_data
 from optimization import optimizar_turnos
 from reports import report_by_worker, report_by_shop
 from logger import setup_logger
+from config import Config
 import logger
 
 def main():
     logger = setup_logger()
     logger.info("Iniciando proceso de optimización de horas extra")
 
+    # Cargamos la configuración
+    config = Config()
+
     init_data = {
-    'holidays_are_availables': {'T_MB': False, 'T_EC': True, 'T_CT': True},
-    'maintenance_days_by_store': {
-    #"T_MB": {5,},
-    #"T_EC": {20},
-        },
-    'month': 1,
-    'year': 2025,
-    'country': "CO"
+        'holidays_are_availables': config.holidays_availability,
+        'maintenance_days_by_store': config.maintenance_days,
+        'month': config.month,
+        'year': config.year,
+        'country': config.country
     }
 
     # Pre-procesamos los datos
@@ -44,7 +44,6 @@ def main():
     df_empleados["Vacaciones"] = df_empleados["Vacaciones"].fillna(
         "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
 
-
     # Optimizamos los turnos
     logger.info("Iniciando optimización de turnos")
     df_asignaciones = optimizar_turnos(df_turnos, df_empleados)
@@ -60,8 +59,6 @@ def main():
     report_by_shop(df_asignaciones, df_empleados)
     logger.info("Reporte por tienda generado")
     logger.info("Proceso completado exitosamente")
-
-
 
 if __name__ == "__main__":
     try:

@@ -1,0 +1,23 @@
+# Configuración general del sistema
+general:
+  month: 1
+  year: 2025
+  country: "CO"
+
+# Configuración de tiendas
+stores:
+  T_MB:
+    holidays_available: false
+    maintenance_days: []
+  T_EC:
+    holidays_available: true
+    maintenance_days: []
+  T_CT:
+    holidays_available: true
+    maintenance_days: []
+
+# Configuración de horarios
+schedule:
+  hours_per_day: 7.66
+  max_monthly_hours: 160
+  max_overtime_hours: 30
