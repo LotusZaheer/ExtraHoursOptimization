@@ -43,7 +43,7 @@ def optimizar_turnos(df_turnos, df_empleados):
 
         # Obtener los días no disponibles del empleado
         dias_no_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, [
-            "Incapacidad", "Vacaciones"]].values[0]
+            "Descanso", "Incapacidad", "Vacaciones"]].values[0]
 
         # Aplanar la lista de días no disponibles
         dias_no_disponibles = set(
@@ -90,6 +90,7 @@ def optimizar_turnos(df_turnos, df_empleados):
         expr=sum(model.y[e] for e in empleados), sense=minimize)
     ###########################################################################
 
+    ###########################################################################
     # Variable binaria para indicar si un empleado trabaja en una tienda
     model.z = Var(empleados, df_turnos["Nombre Tienda"].unique(), domain=Binary)
 
