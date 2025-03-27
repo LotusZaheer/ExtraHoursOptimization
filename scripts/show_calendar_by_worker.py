@@ -140,7 +140,7 @@ html += """
                   ${data['Lista de días descanso'].replace(/[\[\]"]/g, '').split(', ')}</p>`;
                 summaryHTML += `<p><span class="vacaciones-title"><strong>Días de vacaciones:</strong></span> (${data['Días de vacaciones']}) :
                   ${data['Lista de días vacaciones'].replace(/[\[\]"]/g, '').split(', ')}</p>`;
-                summaryHTML += `<p><span class="incapacidad-title"><strong>Días de incapacidad:</strong></span> (${data['Días de incapacidad']} ) :
+                summaryHTML += `<p><span class="incapacidad-title"><strong>Días de incapacidad:</strong></span> (${data['Días de incapacidad']}) :
                   ${data['Lista de días incapacidad'].replace(/[\[\]"]/g, '').split(', ')}</p>`;
 
                 document.getElementById('summary').innerHTML = summaryHTML;
