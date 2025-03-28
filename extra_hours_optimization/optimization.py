@@ -106,40 +106,12 @@ def optimizar_turnos(df_turnos, df_empleados):
     model.obj = Objective(expr=sum(model.w[t] for t in df_turnos["Nombre Tienda"].unique()), sense=minimize)
     ###########################################################################
 
-    ###########################################################################
-    """
-    #Variable para las horas extra
-    model.h_extra = Var(turnos, empleados, domain=NonNegativeReals)
-
-    # Restricción: las horas extra no pueden ser negativas
-    def limite_horas_rule(model, e):
-        horas_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
-        horas_extra_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, "Horas extra disponibles"].values[0]
-        return sum(model.x[t, e] * df_turnos.loc[t, "Horas turno"] + model.h_extra[t, e] for t in turnos) <= horas_disponibles + horas_extra_disponibles
-
-    model.limite_horas = Constraint(empleados, rule=limite_horas_rule)
-
-    # Restricción: las horas extra no pueden exceder el tiempo disponible
-    def restriccion_horas_extra(model, t, e):
-        return model.h_extra[t, e] <= model.x[t, e] * (df_turnos.loc[t, "Hora Final punto"] - df_turnos.loc[t, "Fin turno"])
-
-    model.restriccion_horas_extra = Constraint(turnos, empleados, rule=restriccion_horas_extra)
-    """
-    ###########################################################################
-
-
     # Función objetivo: minimizar la cantidad de turnos sin asignar
-    # model.obj = Objective(expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
 
-    
     cal_hours = sum(model.x[t, e] for t in turnos for e in empleados)  
-    #penalty_extra_hours = 0.1 * sum(model.h_extra[t, e] for t in turnos for e in empleados)
-
 
     model.obj = Objective(
-        expr= cal_hours 
-        #- penalty_extra_hours
-        ,
+        expr= cal_hours ,
         sense=maximize
     )
 
