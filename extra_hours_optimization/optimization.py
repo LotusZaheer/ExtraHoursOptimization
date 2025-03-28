@@ -1,4 +1,3 @@
-
 import pandas as pd
 from pyomo.environ import (Constraint, ConcreteModel, Var, 
                            Binary, NonNegativeReals, 
@@ -93,21 +92,22 @@ def optimizar_turnos(df_turnos, df_empleados):
     ###########################################################################
 
     ###########################################################################
-    # Variable binaria para indicar si un empleado trabaja en una tienda
-    model.z = Var(empleados, df_turnos["Nombre Tienda"].unique(), domain=Binary)
+    # Variable binaria para indicar si una tienda tiene empleados asignados
+    model.w = Var(df_turnos["Nombre Tienda"].unique(), domain=Binary)
 
-    # Restricción: si el empleado tiene al menos un turno en una tienda, z[e, t] = 1
-    def asignar_tienda_rule(model, e, t):
+    # Restricción: si una tienda tiene al menos un empleado asignado, w[t] = 1
+    def activar_tienda_rule(model, t):
         turnos_tienda = [tr for tr in turnos if df_turnos.loc[tr, "Nombre Tienda"] == t]
-        return sum(model.x[tr, e] for tr in turnos_tienda) <= model.z[e, t] * len(turnos_tienda)
+        return sum(model.x[tr, e] for tr in turnos_tienda for e in empleados) <= model.w[t] * len(turnos_tienda) * len(empleados)
 
-    model.asignar_tienda = Constraint(empleados, df_turnos["Nombre Tienda"].unique(), rule=asignar_tienda_rule)
+    model.activar_tienda = Constraint(df_turnos["Nombre Tienda"].unique(), rule=activar_tienda_rule)
 
-    # Minimizar la cantidad de tiendas diferentes por persona
-    model.obj = Objective(expr=sum(model.z[e, t] for e in empleados for t in df_turnos["Nombre Tienda"].unique()), sense=minimize)
+    # Minimizar la cantidad de tiendas con empleados asignados
+    model.obj = Objective(expr=sum(model.w[t] for t in df_turnos["Nombre Tienda"].unique()), sense=minimize)
     ###########################################################################
 
     ###########################################################################
+    """
     #Variable para las horas extra
     model.h_extra = Var(turnos, empleados, domain=NonNegativeReals)
 
@@ -124,16 +124,22 @@ def optimizar_turnos(df_turnos, df_empleados):
         return model.h_extra[t, e] <= model.x[t, e] * (df_turnos.loc[t, "Hora Final punto"] - df_turnos.loc[t, "Fin turno"])
 
     model.restriccion_horas_extra = Constraint(turnos, empleados, rule=restriccion_horas_extra)
-
+    """
     ###########################################################################
 
 
     # Función objetivo: minimizar la cantidad de turnos sin asignar
     # model.obj = Objective(expr=sum(model.x[t, e] for t in turnos for e in empleados), sense=maximize)
 
+    
+    cal_hours = sum(model.x[t, e] for t in turnos for e in empleados)  
+    #penalty_extra_hours = 0.1 * sum(model.h_extra[t, e] for t in turnos for e in empleados)
+
+
     model.obj = Objective(
-        expr=sum(model.x[t, e] for t in turnos for e in empleados)  
-            - 0.1 * sum(model.h_extra[t, e] for t in turnos for e in empleados),  # Penalizamos las horas extra
+        expr= cal_hours 
+        #- penalty_extra_hours
+        ,
         sense=maximize
     )
 
@@ -157,7 +163,7 @@ def optimizar_turnos(df_turnos, df_empleados):
                     "Fin turno": df_turnos.loc[t, "Fin turno"],
                     "Horas turno": df_turnos.loc[t, "Horas turno"],
                     "Día del mes": df_turnos.loc[t, "Día del mes"],
-                    "Horas extra": model.h_extra[t, e].value if model.h_extra[t, e].value > 0 else 0
+                    #"Horas extra": model.h_extra[t, e].value if model.h_extra[t, e].value > 0 else 0
                 })
 
     # Guardar el resultado

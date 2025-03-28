@@ -4,7 +4,9 @@ import numpy as np
 def report_by_worker(df_asignaciones, df_empleados):
 
     df_horas_por_trabajador = df_asignaciones.groupby(
-        "Nombre")[["Horas turno", "Horas extra"]].sum().reset_index()
+        "Nombre")[["Horas turno", 
+                   # "Horas extra"
+                   ]].sum().reset_index()
 
     df_horas_por_trabajador = df_horas_por_trabajador.merge(
         df_empleados[["Nombre", "Cantidad de horas disponibles del mes", "Vacaciones", "Incapacidad"]],
@@ -16,7 +18,9 @@ def report_by_worker(df_asignaciones, df_empleados):
     df_horas_por_trabajador["Incapacidad"] = df_horas_por_trabajador["Incapacidad"].apply(lambda x: eval(x) if isinstance(x, str) else x)
 
     df_horas_por_trabajador["Productividad (%)"] = (
-        (df_horas_por_trabajador["Horas turno"] + df_horas_por_trabajador["Horas extra"] ) /
+        (df_horas_por_trabajador["Horas turno"] 
+         # + df_horas_por_trabajador["Horas extra"] 
+         ) /
         df_horas_por_trabajador["Cantidad de horas disponibles del mes"]
     ) * 100
 
@@ -73,7 +77,9 @@ def report_by_worker(df_asignaciones, df_empleados):
 
 def report_by_shop(df_asignaciones, df_empleados):
 
-    df_horas_por_tienda = df_asignaciones.groupby("Nombre Tienda")[["Horas turno", "Horas extra"]].sum().reset_index()
+    df_horas_por_tienda = df_asignaciones.groupby("Nombre Tienda")[["Horas turno"
+                                                                    #, "Horas extra"
+                                                                    ]].sum().reset_index()
 
     df_trabajadores_por_tienda = df_asignaciones.groupby("Nombre Tienda")["Nombre"].nunique().reset_index()
     df_trabajadores_por_tienda.rename(columns={"Nombre": "Cantidad de trabajadores"}, inplace=True)
