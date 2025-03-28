@@ -135,7 +135,6 @@ def optimizar_turnos(df_turnos, df_empleados):
                     "Fin turno": df_turnos.loc[t, "Fin turno"],
                     "Horas turno": df_turnos.loc[t, "Horas turno"],
                     "Día del mes": df_turnos.loc[t, "Día del mes"],
-                    #"Horas extra": model.h_extra[t, e].value if model.h_extra[t, e].value > 0 else 0
                 })
 
     # Guardar el resultado
