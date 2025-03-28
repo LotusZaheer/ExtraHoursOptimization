@@ -181,7 +181,7 @@ html += """
                     var tiendaColor = """ + json.dumps(colores_tiendas) + """[turno['Nombre Tienda']];
                     var horario = turno['Inicio turno'] + ' - ' + turno['Fin turno'];
                     var horarioColor = """ + json.dumps(colores_horarios) + """[horario];
-                    
+
                     dayElement.innerHTML += `
                         <br>
                         <span style="background: ${tiendaColor}; padding: 2px 5px; border-radius: 3px;">${turno['Nombre Tienda']}</span>
@@ -198,7 +198,7 @@ html += """
 </body>
 </html>"""
 
-with open('../html/turnos_empleado.html', 'w', encoding='utf-8') as f:
+with open('turnos_empleado.html', 'w', encoding='utf-8') as f:
     f.write(html)
 
 print("Archivo 'turnos_empleado.html' generado con éxito.")

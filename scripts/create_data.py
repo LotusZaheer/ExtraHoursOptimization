@@ -8,7 +8,7 @@ def calcular_horas_mes(mes: int, anio: int, horas_semana: int):
     return dias_mes, semanas_mes, horas_mes
 
 def procesar_empleados(empleados, horas_mes):
-    factor = 7.66
+    factor = 7.66 # horas promedio por dia (horas por semana / dias trabajados por semana)
     data = []
     
     for empleado in empleados:

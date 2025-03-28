@@ -1,4 +1,4 @@
 Nombre Tienda,Horas turno,Horas extra,Cantidad de trabajadores,Lista de trabajadores,Días trabajados
-T_CT,1504,0,9,"['E_CG', 'E_NJ', 'E_ZC', 'E_LV', 'E_LR', 'E_JM', 'E_JR', 'E_AM', 'E_NB']",31
-T_EC,436,0,7,"['E_AD', 'E_AQ', 'E_NJ', 'E_AM', 'E_ZC', 'E_CG', 'E_JR']",29
-T_MB,279,0,5,"['E_AD', 'E_AG', 'E_AM', 'E_AQ', 'E_LR']",31
+T_CT,1504,0,9,"['E_ZC', 'E_NJ', 'E_AM', 'E_JM', 'E_AD', 'E_JR', 'E_LV', 'E_AQ', 'E_NB']",31
+T_EC,436,0,8,"['E_JM', 'E_LR', 'E_CG', 'E_ZC', 'E_AQ', 'E_NB', 'E_NJ', 'E_AM']",29
+T_MB,279,0,9,"['E_AM', 'E_NB', 'E_CG', 'E_AD', 'E_AG', 'E_LR', 'E_ZC', 'E_AQ', 'E_NJ']",31

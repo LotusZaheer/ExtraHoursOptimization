@@ -136,7 +136,6 @@ def optimizar_turnos(df_turnos, df_empleados):
             - 0.1 * sum(model.h_extra[t, e] for t in turnos for e in empleados),  # Penalizamos las horas extra
         sense=maximize
     )
-    
 
 
     solver = SolverFactory("glpk")
