@@ -91,21 +91,6 @@ def optimizar_turnos(df_turnos, df_empleados):
         expr=sum(model.y[e] for e in empleados), sense=minimize)
     ###########################################################################
 
-    ###########################################################################
-    # Variable binaria para indicar si una tienda tiene empleados asignados
-    model.w = Var(df_turnos["Nombre Tienda"].unique(), domain=Binary)
-
-    # Restricción: si una tienda tiene al menos un empleado asignado, w[t] = 1
-    def activar_tienda_rule(model, t):
-        turnos_tienda = [tr for tr in turnos if df_turnos.loc[tr, "Nombre Tienda"] == t]
-        return sum(model.x[tr, e] for tr in turnos_tienda for e in empleados) <= model.w[t] * len(turnos_tienda) * len(empleados)
-
-    model.activar_tienda = Constraint(df_turnos["Nombre Tienda"].unique(), rule=activar_tienda_rule)
-
-    # Minimizar la cantidad de tiendas con empleados asignados
-    model.obj = Objective(expr=sum(model.w[t] for t in df_turnos["Nombre Tienda"].unique()), sense=minimize)
-    ###########################################################################
-
     # Función objetivo: minimizar la cantidad de turnos sin asignar
 
     cal_hours = sum(model.x[t, e] for t in turnos for e in empleados)  
@@ -140,4 +125,46 @@ def optimizar_turnos(df_turnos, df_empleados):
     # Guardar el resultado
     df_asignaciones = pd.DataFrame(asignaciones)
     df_asignaciones.to_csv("../outputs/asignacion_turnos.csv", index=False)
+
+#"""
+    # Identificar turnos no asignados
+    turnos_asignados = set(df_asignaciones.apply(lambda x: f"{x['Nombre Tienda']}_{x['Día del mes']}_{x['Inicio turno']}", axis=1))
+    turnos_todos = set(df_turnos.apply(lambda x: f"{x['Nombre Tienda']}_{x['Día del mes']}_{x['Inicio turno']}", axis=1))
+    turnos_no_asignados = turnos_todos - turnos_asignados
+    
+    print("df_asignaciones")
+    print(df_asignaciones)
+
+    # Identificar empleados sin turnos
+    empleados_con_turnos = set(df_asignaciones['Nombre'].unique())
+    empleados_sin_turnos = set(empleados) - empleados_con_turnos
+    
+    # Crear reporte de turnos no asignados
+    reporte_turnos = []
+    for turno in turnos_no_asignados:
+        tienda, dia, inicio = turno.split('_')
+        turno_info = df_turnos[
+            (df_turnos['Nombre Tienda'] == tienda) & 
+            (df_turnos['Día del mes'] == int(dia)) & 
+            (df_turnos['Inicio turno'] == inicio)
+        ].iloc[0]
+        reporte_turnos.append({
+            'Nombre Tienda': tienda,
+            'Día del mes': dia,
+            'Inicio turno': inicio,
+            'Fin turno': turno_info['Fin turno'],
+            'Horas turno': turno_info['Horas turno']
+        })
+    
+    # Guardar reportes
+    df_turnos_no_asignados = pd.DataFrame(reporte_turnos)
+    df_empleados_sin_turnos = pd.DataFrame({'Nombre': list(empleados_sin_turnos)})
+
+    print("Turnos no asignados")
+    print(df_turnos_no_asignados)
+    print("Empleados sin turnos")
+    print(df_empleados_sin_turnos)
+
+    #"""
+
     return df_asignaciones
