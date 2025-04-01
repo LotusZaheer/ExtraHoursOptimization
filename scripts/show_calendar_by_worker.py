@@ -52,15 +52,16 @@ html = f"""<!DOCTYPE html>
     <style>
         body {{ font-family: Arial, sans-serif; }}
         h3 {{ margin: 0; padding: 6px; }}
-        .container {{ width: 90%; max-width: 800px; margin: auto; }}
+        .container {{ width: 95%; max-width: 1200px; margin: auto; }}
         .summary {{ margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; }}
         .calendar-container {{ width: 100%; }}
         .weekdays, .calendar {{ display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }}
         .weekdays div {{ font-weight: bold; }}
-        .day {{ border: 1px solid #ccc; padding: 10px; min-height: 70px; position: relative; }}
+        .day {{ border: 1px solid #ccc; padding: 10px; min-height: 70px; min-width: 150px; position: relative; }}
         .day-number {{ position: absolute; top: 5px; right: 5px; font-size: 12px; font-weight: bold; }}
-        .legend {{ display: flex; flex-direction: row; margin-top: 20px; }}
-        .legend-item {{ margin-right: 10px; padding: 5px 10px; border-radius: 5px; font-size: 14px; }}
+        .legend {{ display: flex; flex-direction: row; flex-wrap: wrap; margin-top: 20px; gap: 10px; }}
+        .legend-item {{ padding: 5px 10px; border-radius: 5px; font-size: 14px; white-space: nowrap; }}
+        .turno-info {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         
         .descanso {{ background: {colores_especiales['descanso']}; }}
         .vacaciones {{ background: {colores_especiales['vacaciones']}; }}
@@ -184,9 +185,8 @@ html += """
 
                     dayElement.innerHTML += `
                         <br>
-                        <span style="background: ${tiendaColor}; padding: 2px 5px; border-radius: 3px;">${turno['Nombre Tienda']}</span>
-                        <br>
-                        <span style="background: ${horarioColor}; padding: 2px 5px; border-radius: 3px;">${horario}</span>
+                        <div class="turno-info" style="background: ${tiendaColor}; padding: 2px 5px; border-radius: 3px;">${turno['Nombre Tienda']}</div>
+                        <div class="turno-info" style="background: ${horarioColor}; padding: 2px 5px; border-radius: 3px;">${horario}</div>
                     `;
 
                         dayElement.classList.add('trabajado');

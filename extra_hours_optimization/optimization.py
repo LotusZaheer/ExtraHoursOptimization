@@ -5,104 +5,126 @@ from pyomo.environ import (Constraint, ConcreteModel, Var,
                            Objective, SolverFactory)
 
 
-def optimizar_turnos(df_turnos, df_empleados):
+def optimize_shifts(df_turnos, df_empleados):
+
+    # Variables auxiliares
+    turnos = df_turnos.index.tolist()
+    empleados = df_empleados["Nombre"].tolist()
+    dias_mes = df_turnos["Día del mes"].unique()
+    tiendas = df_turnos["Nombre Tienda"].unique()
 
     # Crear el modelo de optimización
     model = ConcreteModel()
 
-    empleados = df_empleados["Nombre"].tolist()
-    turnos = df_turnos.index.tolist()
-
-    # Variables
+    # Variables de decisión
     model.x = Var(turnos, empleados, domain=Binary)
 
-    # Restricción:
-    # cada turno debe ser cubierto por la cantidad necesaria de personas
-    def cubrir_turnos_rule(model, t):
-        return sum(model.x[t, e] for e in empleados) == df_turnos.loc[t, "Cantidad personas (con este turno)"]
 
-    model.cubrir_turnos = Constraint(turnos, rule=cubrir_turnos_rule)
+    # Funciones de restricción
+    def cubrir_turnos_rule(model, turno):
+        # Restricción:
+        # cada turno debe ser cubierto por la cantidad necesaria de personas
+        return sum(model.x[turno, empleado] for empleado in empleados) == df_turnos.loc[turno, "Cantidad personas (con este turno)"]
 
-
-    # Restricción:
-    # Un empleado solo puede trabajar en turnos de su tienda
-    # En caso de que no tenga una tienda asignada, puede trabajar en cualquier tienda
-    def tienda_trabajo_rule(model, t, e):
-        tienda_turno = df_turnos.loc[t, "Nombre Tienda"]
+    def tienda_trabajo_rule(model, turno, empleado):
+        # Restricción:
+        # Un empleado solo puede trabajar en turnos de su tienda
+        # En caso de que no tenga una tienda asignada, puede trabajar en cualquier tienda
+        tienda_turno = df_turnos.loc[turno, "Nombre Tienda"]
         tienda_empleado = df_empleados.loc[df_empleados["Nombre"]
-                                        == e, "Encargada punto"].values[0]
+                                        == empleado, "Encargada punto"].values[0]
         if pd.isna(tienda_empleado) or tienda_empleado == tienda_turno:
             return Constraint.Skip
-        return model.x[t, e] == 0
+        return model.x[turno, empleado] == 0
 
-    model.tienda_trabajo = Constraint(turnos, empleados, rule=tienda_trabajo_rule)
-
-
-    # Restricción:
-    # los empleados no pueden trabajar en días de incapacidad o vacaciones
-    def disponibilidad_rule(model, t, e):
-        dia_turno = df_turnos.loc[t, "Día del mes"]
+    def disponibilidad_rule(model, turno, empleado):
+        # Restricción:
+        # los empleados no pueden trabajar en días de incapacidad o vacaciones
+        dia_turno = df_turnos.loc[turno, "Día del mes"]
 
         # Obtener los días no disponibles del empleado
-        dias_no_disponibles = df_empleados.loc[df_empleados["Nombre"] == e, [
-            "Incapacidad", "Vacaciones", "Descanso", ]].values[0]
-
-        # Aplanar la lista de días no disponibles
+        dias_no_disponibles = df_empleados.loc[df_empleados["Nombre"] == empleado, ["Incapacidad", "Vacaciones", "Descanso", ]].values[0]
         dias_no_disponibles = set(sum(dias_no_disponibles, []))
 
         if dia_turno in dias_no_disponibles:
-            return model.x[t, e] == 0
+            # Marcamos el turno como no asignable a este empleado
+            return model.x[turno, empleado] == 0
         return Constraint.Skip
 
-    model.disponibilidad = Constraint(turnos, empleados, rule=disponibilidad_rule)
+    def un_turno_por_dia_rule(model, empleado, dia):
+        # Restricción: Un empleado no puede tener más de un turno por día
+        turnos_dia = [turno for turno in turnos if df_turnos.loc[turno, "Día del mes"] == dia]
+        return sum(model.x[turno, empleado] for turno in turnos_dia) <= 1
 
-
-    # Restricción: Un empleado no puede tener más de un turno por día
-    def un_turno_por_dia_rule(model, e, d):
-        turnos_dia = [t for t in turnos if df_turnos.loc[t, "Día del mes"] == d]
-        return sum(model.x[t, e] for t in turnos_dia) <= 1
-
-    dias_mes = df_turnos["Día del mes"].unique()
-    model.un_turno_por_dia = Constraint(
-        empleados, dias_mes, rule=un_turno_por_dia_rule)
-
-
-    # Restricción:
-    # no exceder las horas mensuales
-    def limite_horas_rule(model, e):
+    def limite_horas_rule(model, empleado):
+        # Restricción:
+        # no exceder las horas mensuales
         horas_disponibles = df_empleados.loc[df_empleados["Nombre"]
-                                            == e, "Cantidad de horas disponibles del mes"].values[0]
-        return sum(model.x[t, e] * df_turnos.loc[t, "Horas turno"] for t in turnos) <= horas_disponibles
+                                            == empleado, "Cantidad de horas disponibles del mes"].values[0]
+        return sum(model.x[turno, empleado] * df_turnos.loc[turno, "Horas turno"] for turno in turnos) <= horas_disponibles
 
+
+    # Definimos las restricciones
+    model.cubrir_turnos = Constraint(turnos, rule=cubrir_turnos_rule)
+    model.tienda_trabajo = Constraint(turnos, empleados, rule=tienda_trabajo_rule)
+    model.disponibilidad = Constraint(turnos, empleados, rule=disponibilidad_rule) #Dias no disponibles para un empleado
+    model.un_turno_por_dia = Constraint(empleados, dias_mes, rule=un_turno_por_dia_rule)
     model.limite_horas = Constraint(empleados, rule=limite_horas_rule)
 
 
-    ###########################################################################
-    # modelo y par minimizar cantidad de empleados en una tienda
-    model.y = Var(empleados, domain=Binary)
+    def cal_assigned_shifts():
+        return sum(model.x[turno, empleado] for turno in turnos for empleado in empleados)
 
-    def activar_empleado_rule(model, e):
-        return sum(model.x[t, e] for t in turnos) <= model.y[e] * len(turnos)
-
-    model.activar_empleado = Constraint(empleados, rule=activar_empleado_rule)
-
+    assigned_shifts = cal_assigned_shifts()
 
     model.obj = Objective(
-        expr=sum(model.y[e] for e in empleados), sense=minimize)
-    ###########################################################################
-
-    # Función objetivo: minimizar la cantidad de turnos sin asignar
-
-    cal_hours = sum(model.x[t, e] for t in turnos for e in empleados)  
-
-    model.obj = Objective(
-        expr= cal_hours ,
+        expr= assigned_shifts,
         sense=maximize
     )
 
-
     solver = SolverFactory("glpk")
     solver.solve(model)
+
+    def horas_asignadas_tienda(tienda):
+        # Sumar las horas asignadas a la tienda
+        return sum(
+            model.x[t, e].value * df_turnos.loc[t, "Horas turno"]
+            for t in turnos if df_turnos.loc[t, "Nombre Tienda"] == tienda
+            for e in empleados
+        )
+
+    suma_horas_necesarias_tienda = sum(
+        horas_asignadas_tienda(tienda)
+        for tienda in tiendas
+    )
+    print(f"Suma de horas necesarias por tienda: {suma_horas_necesarias_tienda:.2f}")
+
+
+    def horas_disponibles(empleados_tienda):
+        return sum(
+            df_empleados.loc[df_empleados["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
+            for e in empleados_tienda
+        )
+
+    def empleados_por_tienda(tienda):
+        empleados_tienda = set()
+        for t in turnos:
+            if df_turnos.loc[t, "Nombre Tienda"] == tienda:
+                for e in empleados:
+                    if model.x[t, e].value == 1:
+                        empleados_tienda.add(e)
+        return empleados_tienda
+    
+    #recorremos todas las tiendas aplicando empleados_por_tienda y con el resultado llamamos a horas_disponibles
+    suma_horas_disponibles_de_todos_los_empleados_de_cada_tienda = sum(
+        horas_disponibles(empleados_por_tienda(tienda))
+        for tienda in tiendas
+    )
+    print(f"Suma de horas disponibles por tienda: {suma_horas_disponibles_de_todos_los_empleados_de_cada_tienda:.2f}")
+
+    diferencia_horas = suma_horas_disponibles_de_todos_los_empleados_de_cada_tienda - suma_horas_necesarias_tienda
+
+    print(f"Diferencia entre horas necesarias y horas disponibles: {diferencia_horas:.2f}")
 
     # Extraer la solución
     asignaciones = []
@@ -126,7 +148,7 @@ def optimizar_turnos(df_turnos, df_empleados):
     df_asignaciones = pd.DataFrame(asignaciones)
     df_asignaciones.to_csv("../outputs/asignacion_turnos.csv", index=False)
 
-#"""
+    """
     # Identificar turnos no asignados
     turnos_asignados = set(df_asignaciones.apply(lambda x: f"{x['Nombre Tienda']}_{x['Día del mes']}_{x['Inicio turno']}", axis=1))
     turnos_todos = set(df_turnos.apply(lambda x: f"{x['Nombre Tienda']}_{x['Día del mes']}_{x['Inicio turno']}", axis=1))
@@ -165,6 +187,6 @@ def optimizar_turnos(df_turnos, df_empleados):
     print("Empleados sin turnos")
     print(df_empleados_sin_turnos)
 
-    #"""
+    """
 
     return df_asignaciones
