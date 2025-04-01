@@ -9,7 +9,7 @@ colores_disponibles = list(mcolors.TABLEAU_COLORS.values())
 
 def load_data():
     df = pd.read_csv('../outputs/asignacion_turnos.csv')
-    horarios_tiendas = pd.read_csv('../inputs/data.csv')
+    horarios_tiendas = pd.read_csv('../intermediate_data/data.csv')
     return df, horarios_tiendas
 
 def generate_shop_calendar(init_data):
