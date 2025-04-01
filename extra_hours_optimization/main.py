@@ -13,7 +13,7 @@ def main():
     'holidays_are_availables': {'T_MB': False, 'T_EC': True, 'T_CT': True},
     'maintenance_days_by_store': {
     #"T_MB": {5,},
-    "T_EC": {20},
+    "T_EC": [20],
         },
     'month': 1,
     'year': 2025,
