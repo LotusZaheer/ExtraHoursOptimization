@@ -62,28 +62,62 @@ def report_by_worker(df_assignments, df_workers, total_days_in_month):
     print(df_hours_per_worker.head())
 
 
-def report_by_shop(df_assignments):
-
+def report_by_shop(df_assignments, df_workers):
+    """
+    Genera un reporte detallado por tienda incluyendo horas requeridas y disponibles.
+    
+    Args:
+        df_assignments (pd.DataFrame): DataFrame con las asignaciones de turnos
+        df_workers (pd.DataFrame): DataFrame con información de los trabajadores
+    """
+    # Calcular horas trabajadas por tienda
     df_hours_per_shop = df_assignments.groupby("Nombre Tienda")[["Horas turno", ]].sum().reset_index()
+    df_hours_per_shop.rename(columns={"Horas turno": "Horas trabajadas"}, inplace=True)
 
+    # Calcular empleados por tienda
     df_workers_per_shop = df_assignments.groupby("Nombre Tienda")["Nombre"].nunique().reset_index()
     df_workers_per_shop.rename(columns={"Nombre": "Cantidad de trabajadores"}, inplace=True)
 
+    # Lista de trabajadores por tienda
     df_worker_list = df_assignments.groupby("Nombre Tienda")["Nombre"].unique().reset_index()
     df_worker_list.rename(columns={"Nombre": "Lista de trabajadores"}, inplace=True)
     df_worker_list["Lista de trabajadores"] = df_worker_list["Lista de trabajadores"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
 
+    # Días trabajados por tienda
     df_worked_days = df_assignments.groupby("Nombre Tienda")["Día del mes"].nunique().reset_index()
     df_worked_days.rename(columns={"Día del mes": "Días trabajados"}, inplace=True)
 
+    # Calcular horas disponibles por tienda y por empleado
+    def get_worker_hours_info(workers_list):
+        hours_info = []
+        total_hours = 0
+        for worker in workers_list:
+            hours = df_workers.loc[df_workers["Nombre"] == worker, "Cantidad de horas disponibles del mes"].values[0]
+            total_hours += hours
+            hours_info.append(f"{worker}: {hours:.2f} horas")
+        return hours_info, total_hours
+
+    df_worker_list["Horas por empleado"] = df_worker_list["Lista de trabajadores"].apply(lambda x: get_worker_hours_info(x)[0])
+    df_worker_list["Horas disponibles"] = df_worker_list["Lista de trabajadores"].apply(lambda x: get_worker_hours_info(x)[1])
+
+    # Combinar todos los datos
     df_shop_report = df_hours_per_shop.merge(df_workers_per_shop, on="Nombre Tienda", how="left")
     df_shop_report = df_shop_report.merge(df_worker_list, on="Nombre Tienda", how="left")
     df_shop_report = df_shop_report.merge(df_worked_days, on="Nombre Tienda", how="left")
 
     df_shop_report.to_csv("../outputs/horas_por_tienda.csv", index=False)
     
-    print("Reporte de horas y métricas por tienda")
-    print(df_shop_report.head())
+    print("\nReporte de horas y métricas por tienda")
+    print("=====================================")
+    for _, row in df_shop_report.iterrows():
+        print(f"\nTienda: {row['Nombre Tienda']}")
+        print(f"  Horas trabajadas: {row['Horas trabajadas']:.2f}")
+        print(f"  Horas disponibles totales: {row['Horas disponibles']:.2f}")
+        print(f"  Cantidad de trabajadores: {row['Cantidad de trabajadores']}")
+        print(f"  Días trabajados: {row['Días trabajados']}")
+        print("\n  Horas disponibles por empleado:")
+        for hours_info in row['Horas por empleado']:
+            print(f"    {hours_info}")
 
 def report_global(df_assignments, df_workers, df_shifts):
     """

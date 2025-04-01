@@ -3,13 +3,90 @@ from pyomo.environ import (Constraint, ConcreteModel, Var,
                            Binary, NonNegativeReals, 
                            minimize, maximize, 
                            Objective, SolverFactory)
+from itertools import combinations
 
+
+def calculate_minimum_workers(df_shifts, df_workers):
+    """
+    Calcula el número mínimo de empleados necesarios para cubrir todos los turnos,
+    buscando la combinación que más se acerque por encima a las horas requeridas.
+    """
+    # Calcular horas totales necesarias por tienda
+    total_hours_by_store = {}
+    for store in df_shifts["Nombre Tienda"].unique():
+        store_shifts = df_shifts[df_shifts["Nombre Tienda"] == store]
+        total_hours = sum(store_shifts["Horas turno"] * store_shifts["Cantidad personas (con este turno)"])
+        total_hours_by_store[store] = total_hours
+
+    # Calcular horas totales necesarias
+    total_hours_needed = sum(total_hours_by_store.values())
+
+    # Identificar empleados que son encargados de puntos
+    store_managers = df_workers[df_workers["Encargada punto"].notna()]["Nombre"].tolist()
+    
+    # Calcular horas disponibles por empleado
+    available_hours_by_worker = {}
+    for _, worker in df_workers.iterrows():
+        available_hours = worker["Cantidad de horas disponibles del mes"]
+        available_hours_by_worker[worker["Nombre"]] = available_hours
+
+    # Ordenar empleados por horas disponibles (de mayor a menor)
+    sorted_workers = sorted(available_hours_by_worker.items(), key=lambda x: x[1], reverse=True)
+
+    # Primero incluir los encargados de puntos
+    workers_needed = []
+    current_hours = 0
+    for manager in store_managers:
+        if manager in available_hours_by_worker:
+            current_hours += available_hours_by_worker[manager]
+            workers_needed.append(manager)
+            print(f"Encargado de punto incluido: {manager} con {available_hours_by_worker[manager]} horas")
+
+    # Si aún no tenemos suficientes horas, buscar la mejor combinación de empleados adicionales
+    if current_hours < total_hours_needed:
+        remaining_workers = [w for w in sorted_workers if w[0] not in workers_needed]
+        best_combination = None
+        best_hours = float('inf')
+        best_workers = None
+
+        # Probar diferentes combinaciones de empleados
+        for i in range(1, len(remaining_workers) + 1):
+            for combination in combinations(remaining_workers, i):
+                combination_hours = sum(hours for _, hours in combination)
+                if combination_hours >= total_hours_needed - current_hours:
+                    if combination_hours < best_hours:
+                        best_hours = combination_hours
+                        best_combination = combination
+                        best_workers = [w[0] for w in combination]
+
+        if best_workers:
+            workers_needed.extend(best_workers)
+            current_hours += best_hours
+            print(f"\nEmpleados adicionales seleccionados:")
+            for worker in best_workers:
+                print(f"- {worker} con {available_hours_by_worker[worker]} horas")
+
+    print(f"\nCálculo de empleados mínimos necesarios:")
+    print(f"Total horas necesarias: {total_hours_needed:.2f}")
+    print(f"Total horas disponibles: {current_hours:.2f}")
+    print(f"Empleados necesarios: {len(workers_needed)}")
+    print(f"Lista de empleados: {', '.join(workers_needed)}")
+    print("\nHoras por tienda:")
+    for store, hours in total_hours_by_store.items():
+        print(f"{store}: {hours:.2f} horas")
+
+    return workers_needed
 
 def optimize_shifts(df_shifts, df_workers):
+    # Calcular el número mínimo de empleados necesarios
+    workers_needed = calculate_minimum_workers(df_shifts, df_workers)
+    
+    # Filtrar df_workers para usar solo los empleados necesarios
+    df_workers_filtered = df_workers[df_workers["Nombre"].isin(workers_needed)]
 
     ################ Variables auxiliares ################ 
     shifts = df_shifts.index.tolist()
-    workers = df_workers["Nombre"].tolist()
+    workers = df_workers_filtered["Nombre"].tolist()
     days_in_month = df_shifts["Día del mes"].unique()
     shops = df_shifts["Nombre Tienda"].unique()
 
@@ -31,7 +108,7 @@ def optimize_shifts(df_shifts, df_workers):
         # Un empleado solo puede trabajar en turnos de su tienda
         # En caso de que no tenga una tienda asignada, puede trabajar en cualquier tienda
         store_shift = df_shifts.loc[shift,"Nombre Tienda"]
-        store_worker = df_workers.loc[df_workers["Nombre"]
+        store_worker = df_workers_filtered.loc[df_workers_filtered["Nombre"]
                                         == worker, "Encargada punto"].values[0]
         if pd.isna(store_worker) or store_worker == store_shift:
             return Constraint.Skip
@@ -43,7 +120,7 @@ def optimize_shifts(df_shifts, df_workers):
         shift_day = df_shifts.loc[shift, "Día del mes"]
 
         # Obtener los días no disponibles del empleado
-        unavailable_days  = df_workers.loc[df_workers["Nombre"] == worker, ["Incapacidad", "Vacaciones", "Descanso", ]].values[0]
+        unavailable_days  = df_workers_filtered.loc[df_workers_filtered["Nombre"] == worker, ["Incapacidad", "Vacaciones", "Descanso", ]].values[0]
         unavailable_days  = set(sum(unavailable_days , []))
 
         if shift_day in unavailable_days :
@@ -59,7 +136,7 @@ def optimize_shifts(df_shifts, df_workers):
     def monthly_hours_limit_rule(model, worker):
         # Restricción:
         # no exceder las horas mensuales
-        available_hours = df_workers.loc[df_workers["Nombre"]
+        available_hours = df_workers_filtered.loc[df_workers_filtered["Nombre"]
                                             == worker, "Cantidad de horas disponibles del mes"].values[0]
         return sum(model.x[turno, worker] * df_shifts.loc[turno, "Horas turno"] for turno in shifts) <= available_hours
 
@@ -89,7 +166,7 @@ def optimize_shifts(df_shifts, df_workers):
                     if model.x[t, e].value == 1:
                         empleados_tienda.add(e)
         return sum(
-            df_workers.loc[df_workers["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
+            df_workers_filtered.loc[df_workers_filtered["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
             for e in empleados_tienda
         )
 
@@ -129,7 +206,7 @@ def optimize_shifts(df_shifts, df_workers):
         
 
         horas_disponibles = sum(
-            df_workers.loc[df_workers["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
+            df_workers_filtered.loc[df_workers_filtered["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
             for e in empleados_tienda
         )
         suma_total_horas_disponibles += horas_disponibles
@@ -144,7 +221,6 @@ def optimize_shifts(df_shifts, df_workers):
     print(f"  Total horas necesarias: {suma_total_horas_necesarias:.2f}")
     print(f"  Total horas disponibles: {suma_total_horas_disponibles:.2f}")
     print(f"  Diferencia: {abs(suma_total_horas_disponibles - suma_total_horas_necesarias):.2f}")
-
     # Extraer la solución
     asignaciones = []
     for t in shifts:
