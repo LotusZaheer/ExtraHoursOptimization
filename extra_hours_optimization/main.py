@@ -43,19 +43,19 @@ def main():
     df_assignments = optimize_shifts (df_shifts, df_workers.head(12))
 
     # Generamos el reporte por trabajador
-    report_by_worker(df_assignments, df_workers, total_days_in_month)
+    #report_by_worker(df_assignments, df_workers, total_days_in_month)
 
     # Generamos el reporte por tienda
-    report_by_shop(df_assignments)
+    #report_by_shop(df_assignments)
 
     # Generamos el reporte global
-    report_global(df_assignments, df_workers, df_shifts)
+    #report_global(df_assignments, df_workers, df_shifts)
 
     # Generamos el calendario por trabajador
-    generate_worker_calendar()
+    #generate_worker_calendar()
 
     # Generamos el calendario por tienda
-    generate_shop_calendar(init_data)
+    #generate_shop_calendar(init_data)
 
 
 if __name__ == "__main__":

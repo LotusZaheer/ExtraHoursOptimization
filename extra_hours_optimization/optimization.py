@@ -7,20 +7,20 @@ from pyomo.environ import (Constraint, ConcreteModel, Var,
 
 def optimize_shifts(df_shifts, df_workers):
 
-    # Variables auxiliares
-    turnos = df_shifts.index.tolist()
+    ################ Variables auxiliares ################ 
+    shifts = df_shifts.index.tolist()
     workers = df_workers["Nombre"].tolist()
     days_in_month = df_shifts["Día del mes"].unique()
-    tiendas = df_shifts["Nombre Tienda"].unique()
+    shops = df_shifts["Nombre Tienda"].unique()
 
-    # Crear el modelo de optimización
+    ################ Crear el modelo de optimización ################
     model = ConcreteModel()
 
-    # Variables de decisión
-    model.x = Var(turnos, workers, domain=Binary)
+    ################ Variables de decisión ################ 
+    model.x = Var(shifts, workers, domain=Binary)
 
 
-    # Funciones de restricción
+    ################ Funciones de restricción ################ 
     def cover_shifts_rule(model, shift):
         # Restricción:
         # cada turno debe ser cubierto por la cantidad necesaria de personas
@@ -53,7 +53,7 @@ def optimize_shifts(df_shifts, df_workers):
 
     def one_shift_per_day_rule(model, worker, day):
         # Restricción: Un empleado no puede tener más de un turno por día
-        shifts_day = [shift for shift in turnos if df_shifts.loc[shift, "Día del mes"] == day]
+        shifts_day = [shift for shift in shifts if df_shifts.loc[shift, "Día del mes"] == day]
         return sum(model.x[shift, worker] for shift in shifts_day) <= 1
 
     def monthly_hours_limit_rule(model, worker):
@@ -61,27 +61,29 @@ def optimize_shifts(df_shifts, df_workers):
         # no exceder las horas mensuales
         available_hours = df_workers.loc[df_workers["Nombre"]
                                             == worker, "Cantidad de horas disponibles del mes"].values[0]
-        return sum(model.x[turno, worker] * df_shifts.loc[turno, "Horas turno"] for turno in turnos) <= available_hours
+        return sum(model.x[turno, worker] * df_shifts.loc[turno, "Horas turno"] for turno in shifts) <= available_hours
 
 
-    # Definimos las restricciones
-    model.cubrir_turnos = Constraint(turnos, rule=cover_shifts_rule)
-    model.tienda_trabajo = Constraint(turnos, workers, rule=store_work_rule)
-    model.disponibilidad = Constraint(turnos, workers, rule=availability_rule) #Dias no disponibles para un empleado
-    model.un_turno_por_dia = Constraint(workers, days_in_month, rule=one_shift_per_day_rule)
-    model.limite_horas = Constraint(workers, rule=monthly_hours_limit_rule)
+
+    ################# Definimos las restricciones ################ 
+    model.cover_shifts = Constraint(shifts, rule=cover_shifts_rule)
+    model.store_work = Constraint(shifts, workers, rule=store_work_rule)
+    model.availability = Constraint(shifts, workers, rule=availability_rule)  # Unavailable days for a worker
+    model.one_shift_per_day = Constraint(workers, days_in_month, rule=one_shift_per_day_rule)
+    model.monthly_hours_limit = Constraint(workers, rule=monthly_hours_limit_rule)
 
 
-    # Funciones de calculo de expresiones
-    def calcular_horas_necesarias_tienda(tienda):
+    ################ Funciones de calculo de expresiones ################ 
+    def calculate_required_hours_store(store):
         return sum(
             df_shifts.loc[t, "Horas turno"] * df_shifts.loc[t, "Cantidad personas (con este turno)"]
-            for t in turnos if df_shifts.loc[t, "Nombre Tienda"] == tienda
+            for t in shifts if df_shifts.loc[t, "Nombre Tienda"] == store
         )
+
 
     def calculate_available_hours_store_employees(shop):
         empleados_tienda = set()
-        for t in turnos:
+        for t in shifts:
             if df_shifts.loc[t, "Nombre Tienda"] == shop:
                 for e in workers:
                     if model.x[t, e].value == 1:
@@ -91,10 +93,10 @@ def optimize_shifts(df_shifts, df_workers):
             for e in empleados_tienda
         )
 
-    # Definimos la función objetivo
+    ################ Definimos la función objetivo ################ 
     sum_differences = sum(
-        (calculate_available_hours_store_employees(shop) - calcular_horas_necesarias_tienda(shop))
-        for shop in tiendas
+        (calculate_available_hours_store_employees(shop) - calculate_required_hours_store(shop))
+        for shop in shops
     )
 
     model.obj = Objective(
@@ -102,35 +104,37 @@ def optimize_shifts(df_shifts, df_workers):
         sense=minimize
     )
 
+    ################ Ejecutar el modelo ################
     solver = SolverFactory("glpk")
     solver.solve(model)
 
-    # Mostrar información por tienda
+
+    ################ Revisión de resultados ################
     print("\nInformación por tienda:")
     suma_total_horas_necesarias = 0
     suma_total_horas_disponibles = 0
     
-    for tienda in tiendas:
-        # Calcular horas necesarias
-        horas_necesarias = calcular_horas_necesarias_tienda(tienda)
+    for tienda in shops:
+
+        horas_necesarias = calculate_required_hours_store(tienda)
         suma_total_horas_necesarias += horas_necesarias
         
-        # Obtener empleados asignados
+
         empleados_tienda = set()
-        for t in turnos:
+        for t in shifts:
             if df_shifts.loc[t, "Nombre Tienda"] == tienda:
                 for e in workers:
                     if model.x[t, e].value == 1:
                         empleados_tienda.add(e)
         
-        # Calcular horas disponibles
+
         horas_disponibles = sum(
             df_workers.loc[df_workers["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
             for e in empleados_tienda
         )
         suma_total_horas_disponibles += horas_disponibles
         
-        # Mostrar información de la tienda
+
         print(f"\n{tienda}:")
         print(f"  Horas necesarias: {horas_necesarias:.2f}")
         print(f"  Empleados asignados: {', '.join(empleados_tienda)}")
@@ -143,7 +147,7 @@ def optimize_shifts(df_shifts, df_workers):
 
     # Extraer la solución
     asignaciones = []
-    for t in turnos:
+    for t in shifts:
         for e in workers:
             if model.x[t, e].value == 1:
                 asignaciones.append({
@@ -159,8 +163,7 @@ def optimize_shifts(df_shifts, df_workers):
                     "Día del mes": df_shifts.loc[t, "Día del mes"],
                 })
 
-    # Guardar el resultado
-    df_asignaciones = pd.DataFrame(asignaciones)
-    df_asignaciones.to_csv("../outputs/asignacion_turnos.csv", index=False)
+    df_assignments = pd.DataFrame(asignaciones)
+    df_assignments.to_csv("../outputs/asignacion_turnos.csv", index=False)
 
-    return df_asignaciones
+    return df_assignments
