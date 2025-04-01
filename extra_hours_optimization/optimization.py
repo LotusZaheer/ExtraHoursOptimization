@@ -72,24 +72,17 @@ def optimize_shifts(df_turnos, df_empleados):
     model.limite_horas = Constraint(empleados, rule=limite_horas_rule)
 
 
-    def cal_assigned_shifts():
-        return sum(model.x[turno, empleado] for turno in turnos for empleado in empleados)
-
-    assigned_shifts = cal_assigned_shifts()
-
     def calcular_horas_necesarias_tienda(tienda):
         return sum(
             df_turnos.loc[t, "Horas turno"] * df_turnos.loc[t, "Cantidad personas (con este turno)"]
             for t in turnos if df_turnos.loc[t, "Nombre Tienda"] == tienda
         )
 
-    hours_needed_per_shop = sum(calcular_horas_necesarias_tienda(tienda) for tienda in tiendas)
-
-    def calcular_horas_disponibles_empleados_tienda(tienda):
+    def calculate_available_hours_store_employees(shop):
         # Obtener los empleados asignados a la tienda
         empleados_tienda = set()
         for t in turnos:
-            if df_turnos.loc[t, "Nombre Tienda"] == tienda:
+            if df_turnos.loc[t, "Nombre Tienda"] == shop:
                 for e in empleados:
                     if model.x[t, e].value == 1:
                         empleados_tienda.add(e)
@@ -100,13 +93,15 @@ def optimize_shifts(df_turnos, df_empleados):
             for e in empleados_tienda
         )
 
-    add_up_available_hours_of_all_employees_in_each_shop = sum(
-        calcular_horas_disponibles_empleados_tienda(tienda)
-        for tienda in tiendas
-    )
+
+    sum_differences = sum(
+        (calculate_available_hours_store_employees(shop) - calcular_horas_necesarias_tienda(shop))
+        for shop in tiendas
+    ) / len(tiendas)
 
     model.obj = Objective(
-        expr= abs(add_up_available_hours_of_all_employees_in_each_shop - hours_needed_per_shop),
+        #expr= abs(add_up_available_hours_of_all_employees_in_each_shop - hours_needed_per_shop),
+        expr=abs(sum_differences),
         sense=minimize
     )
 
