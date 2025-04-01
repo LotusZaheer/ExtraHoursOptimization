@@ -3,6 +3,8 @@ import pandas as pd
 from data_processing import process_data
 from optimization import optimize_shifts 
 from reports import report_by_worker, report_by_shop, report_global
+from show_calendar_by_worker import generate_worker_calendar
+from show_calendar_by_shop import generate_shop_calendar
 
 
 def main():
@@ -49,6 +51,11 @@ def main():
     # Generamos el reporte global
     report_global(df_assignments, df_workers, df_shifts)
 
+    # Generamos el calendario por trabajador
+    generate_worker_calendar()
+
+    # Generamos el calendario por tienda
+    generate_shop_calendar(init_data)
 
 
 if __name__ == "__main__":

@@ -9,62 +9,51 @@ colores_disponibles = list(mcolors.TABLEAU_COLORS.values())
 
 def load_data():
     df = pd.read_csv('../outputs/asignacion_turnos.csv')
-    productividad = pd.read_csv('../outputs/horas_por_tienda.csv')
     horarios_tiendas = pd.read_csv('../inputs/data.csv')
-    return df, productividad, horarios_tiendas
+    return df, horarios_tiendas
 
+def generate_shop_calendar(init_data):
+    print("Generando calendario de turnos por tienda...")
+    data, horarios_tiendas = load_data()
 
-data, productividad, horarios_tiendas = load_data()
+    
 
-# Configuración de días especiales
-init_data = {
-    'holidays_are_availables': {'T_MB': False, 'T_EC': True, 'T_CT': True},
-    'maintenance_days_by_store': {
-        # "T_MB": [5],
-        #"T_EC": [20],
-    },
-    'month': 1,
-    'year': 2025,
-    'country': "CO"
-}
+    # Obtener días festivos
+    holidays_list = holidays.country_holidays(init_data['country'], years=init_data['year'])
+    festivos = [day.day for day in holidays_list.keys() if day.month == init_data['month']]
 
-# Obtener días festivos
-holidays_list = holidays.country_holidays(init_data['country'], years=init_data['year'])
-festivos = [day.day for day in holidays_list.keys() if day.month == init_data['month']]
+    # Obtener días de mantenimiento por tienda
+    dias_mantenimiento = init_data['maintenance_days_by_store']
 
-# Obtener días de mantenimiento por tienda
-dias_mantenimiento = init_data['maintenance_days_by_store']
+    # Asignar colores a trabajadores y horarios
+    trabajadores_unicos = data['Nombre'].unique()
+    colores_trabajadores = {trabajador: colores_disponibles[i % len(colores_disponibles)] 
+                           for i, trabajador in enumerate(trabajadores_unicos)}
 
-# Asignar colores a trabajadores y horarios
-trabajadores_unicos = data['Nombre'].unique()
-colores_trabajadores = {trabajador: colores_disponibles[i % len(colores_disponibles)] 
-                       for i, trabajador in enumerate(trabajadores_unicos)}
+    horarios_unicos = data[['Inicio turno', 'Fin turno']].drop_duplicates()
+    horarios_unicos['Horario'] = horarios_unicos.apply(lambda row: f"{row['Inicio turno']} - {row['Fin turno']}", axis=1)
+    colores_horarios = {horario: colores_disponibles[i % len(colores_disponibles)] 
+                       for i, horario in enumerate(horarios_unicos['Horario'].unique())}
 
-horarios_unicos = data[['Inicio turno', 'Fin turno']].drop_duplicates()
-horarios_unicos['Horario'] = horarios_unicos.apply(lambda row: f"{row['Inicio turno']} - {row['Fin turno']}", axis=1)
-colores_horarios = {horario: colores_disponibles[i % len(colores_disponibles)] 
-                   for i, horario in enumerate(horarios_unicos['Horario'].unique())}
+    # Colores para días especiales
+    colores_especiales = {
+        "festivo": "rgba(255, 165, 0, 0.3)",  # Naranja para festivos
+        "mantenimiento": "rgba(169, 169, 169, 0.3)"  # Gris para mantenimiento
+    }
 
-# Colores para días especiales
-colores_especiales = {
-    "festivo": "rgba(255, 165, 0, 0.3)",  # Naranja para festivos
-    "mantenimiento": "rgba(169, 169, 169, 0.3)"  # Gris para mantenimiento
-}
+    # Mapeo de días de la semana
+    dias_semana = {
+        "LU": "Lunes",
+        "MA": "Martes",
+        "MI": "Miércoles",
+        "JU": "Jueves",
+        "VI": "Viernes",
+        "SA": "Sábado",
+        "DO": "Domingo",
+        "FE": "Festivo",
+        "MN": "Mantenimiento"
+    }
 
-# Mapeo de días de la semana
-dias_semana = {
-    "LU": "Lunes",
-    "MA": "Martes",
-    "MI": "Miércoles",
-    "JU": "Jueves",
-    "VI": "Viernes",
-    "SA": "Sábado",
-    "DO": "Domingo",
-    "FE": "Festivo",
-    "MN": "Mantenimiento"
-}
-
-def generate_html_calendar_by_shop(data):
     tiendas = data['Nombre Tienda'].unique()
     data_json = json.dumps(data.to_dict(orient='records'))
     colores_trabajadores_json = json.dumps(colores_trabajadores)
@@ -336,5 +325,8 @@ def generate_html_calendar_by_shop(data):
     with open('../html/turnos_tienda.html', 'w', encoding='utf-8') as f:
         f.write(html)
 
+    print("Archivo 'turnos_tienda.html' generado con éxito.")
 
-generate_html_calendar_by_shop(data)
+if __name__ == "__main__":
+    print("El script show_calendar_by_shop se está ejecutando...")
+    generate_shop_calendar()
