@@ -20,7 +20,7 @@ data, productividad, horarios_tiendas = load_data()
 init_data = {
     'holidays_are_availables': {'T_MB': False, 'T_EC': True, 'T_CT': True},
     'maintenance_days_by_store': {
-        "T_MB": [5],
+        # "T_MB": [5],
         #"T_EC": [20],
     },
     'month': 1,
@@ -64,7 +64,7 @@ dias_semana = {
     "MN": "Mantenimiento"
 }
 
-def generate_html(data):
+def generate_html_calendar_by_shop(data):
     tiendas = data['Nombre Tienda'].unique()
     data_json = json.dumps(data.to_dict(orient='records'))
     colores_trabajadores_json = json.dumps(colores_trabajadores)
@@ -333,8 +333,8 @@ def generate_html(data):
     </body>
     </html>"""
 
-    with open('turnos_tienda.html', 'w', encoding='utf-8') as f:
+    with open('../html/turnos_tienda.html', 'w', encoding='utf-8') as f:
         f.write(html)
 
 
-generate_html(data)
+generate_html_calendar_by_shop(data)

@@ -77,54 +77,77 @@ def optimize_shifts(df_turnos, df_empleados):
 
     assigned_shifts = cal_assigned_shifts()
 
-    model.obj = Objective(
-        expr= assigned_shifts,
-        sense=maximize
-    )
-
-    solver = SolverFactory("glpk")
-    solver.solve(model)
-
-    def horas_asignadas_tienda(tienda):
-        # Sumar las horas asignadas a la tienda
+    def calcular_horas_necesarias_tienda(tienda):
         return sum(
-            model.x[t, e].value * df_turnos.loc[t, "Horas turno"]
+            df_turnos.loc[t, "Horas turno"] * df_turnos.loc[t, "Cantidad personas (con este turno)"]
             for t in turnos if df_turnos.loc[t, "Nombre Tienda"] == tienda
-            for e in empleados
         )
 
-    suma_horas_necesarias_tienda = sum(
-        horas_asignadas_tienda(tienda)
-        for tienda in tiendas
-    )
-    print(f"Suma de horas necesarias por tienda: {suma_horas_necesarias_tienda:.2f}")
+    hours_needed_per_shop = sum(calcular_horas_necesarias_tienda(tienda) for tienda in tiendas)
 
-
-    def horas_disponibles(empleados_tienda):
-        return sum(
-            df_empleados.loc[df_empleados["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
-            for e in empleados_tienda
-        )
-
-    def empleados_por_tienda(tienda):
+    def calcular_horas_disponibles_empleados_tienda(tienda):
+        # Obtener los empleados asignados a la tienda
         empleados_tienda = set()
         for t in turnos:
             if df_turnos.loc[t, "Nombre Tienda"] == tienda:
                 for e in empleados:
                     if model.x[t, e].value == 1:
                         empleados_tienda.add(e)
-        return empleados_tienda
-    
-    #recorremos todas las tiendas aplicando empleados_por_tienda y con el resultado llamamos a horas_disponibles
-    suma_horas_disponibles_de_todos_los_empleados_de_cada_tienda = sum(
-        horas_disponibles(empleados_por_tienda(tienda))
+        
+        # Calcular las horas disponibles de estos empleados
+        return sum(
+            df_empleados.loc[df_empleados["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
+            for e in empleados_tienda
+        )
+
+    add_up_available_hours_of_all_employees_in_each_shop = sum(
+        calcular_horas_disponibles_empleados_tienda(tienda)
         for tienda in tiendas
     )
-    print(f"Suma de horas disponibles por tienda: {suma_horas_disponibles_de_todos_los_empleados_de_cada_tienda:.2f}")
 
-    diferencia_horas = suma_horas_disponibles_de_todos_los_empleados_de_cada_tienda - suma_horas_necesarias_tienda
+    model.obj = Objective(
+        expr= abs(add_up_available_hours_of_all_employees_in_each_shop - hours_needed_per_shop),
+        sense=minimize
+    )
 
-    print(f"Diferencia entre horas necesarias y horas disponibles: {diferencia_horas:.2f}")
+    solver = SolverFactory("glpk")
+    solver.solve(model)
+
+    # Mostrar información por tienda
+    print("\nInformación por tienda:")
+    suma_total_horas_necesarias = 0
+    suma_total_horas_disponibles = 0
+    
+    for tienda in tiendas:
+        # Calcular horas necesarias
+        horas_necesarias = calcular_horas_necesarias_tienda(tienda)
+        suma_total_horas_necesarias += horas_necesarias
+        
+        # Obtener empleados asignados
+        empleados_tienda = set()
+        for t in turnos:
+            if df_turnos.loc[t, "Nombre Tienda"] == tienda:
+                for e in empleados:
+                    if model.x[t, e].value == 1:
+                        empleados_tienda.add(e)
+        
+        # Calcular horas disponibles
+        horas_disponibles = sum(
+            df_empleados.loc[df_empleados["Nombre"] == e, "Cantidad de horas disponibles del mes"].values[0]
+            for e in empleados_tienda
+        )
+        suma_total_horas_disponibles += horas_disponibles
+        
+        # Mostrar información de la tienda
+        print(f"\n{tienda}:")
+        print(f"  Horas necesarias: {horas_necesarias:.2f}")
+        print(f"  Empleados asignados: {', '.join(empleados_tienda)}")
+        print(f"  Horas disponibles: {horas_disponibles:.2f}")
+    
+    print(f"\nTotales:")
+    print(f"  Total horas necesarias: {suma_total_horas_necesarias:.2f}")
+    print(f"  Total horas disponibles: {suma_total_horas_disponibles:.2f}")
+    print(f"  Diferencia: {abs(suma_total_horas_disponibles - suma_total_horas_necesarias):.2f}")
 
     # Extraer la solución
     asignaciones = []

@@ -1,4 +1,3 @@
-
 import numpy as np
 
 def report_by_worker(df_assignments, df_workers, total_days_in_month):
@@ -85,3 +84,46 @@ def report_by_shop(df_assignments):
     
     print("Reporte de horas y métricas por tienda")
     print(df_shop_report.head())
+
+def report_global(df_assignments, df_workers, df_shifts):
+    """
+    Genera un reporte global con métricas generales del sistema.
+    
+    Args:
+        df_assignments (pd.DataFrame): DataFrame con las asignaciones de turnos
+        df_workers (pd.DataFrame): DataFrame con información de los trabajadores
+        df_shifts (pd.DataFrame): DataFrame con información de los turnos
+    """
+    print("\nReporte Global del Sistema")
+    print("=========================")
+    
+    # Identificar empleados sin horas asignadas
+    empleados_con_horas = set(df_assignments['Nombre'].unique())
+    empleados_sin_horas = set(df_workers['Nombre']) - empleados_con_horas
+    
+    if empleados_sin_horas:
+        print("\nEmpleados sin horas asignadas:")
+        print("-----------------------------")
+        for empleado in sorted(empleados_sin_horas):
+            print(f"- {empleado}")
+    else:
+        print("\nTodos los empleados tienen horas asignadas.")
+    
+    # Identificar turnos sin asignar
+    turnos_asignados = set(df_assignments.apply(lambda x: f"{x['Nombre Tienda']}_{x['Día del mes']}_{x['Inicio turno']}", axis=1))
+    turnos_todos = set(df_shifts.apply(lambda x: f"{x['Nombre Tienda']}_{x['Día del mes']}_{x['Inicio turno']}", axis=1))
+    turnos_sin_asignar = turnos_todos - turnos_asignados
+    
+    if turnos_sin_asignar:
+        print("\nTurnos sin asignar:")
+        print("------------------")
+        for turno in sorted(turnos_sin_asignar):
+            tienda, dia, inicio = turno.split('_')
+            turno_info = df_shifts[
+                (df_shifts['Nombre Tienda'] == tienda) & 
+                (df_shifts['Día del mes'] == int(dia)) & 
+                (df_shifts['Inicio turno'] == inicio)
+            ].iloc[0]
+            print(f"- Tienda: {tienda}, Día: {dia}, Horario: {inicio} - {turno_info['Fin turno']}")
+    else:
+        print("\nTodos los turnos están asignados.")

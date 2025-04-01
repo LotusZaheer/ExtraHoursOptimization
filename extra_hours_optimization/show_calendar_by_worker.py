@@ -198,7 +198,7 @@ html += """
 </body>
 </html>"""
 
-with open('turnos_empleado.html', 'w', encoding='utf-8') as f:
+with open('../html/turnos_empleado.html', 'w', encoding='utf-8') as f:
     f.write(html)
 
 print("Archivo 'turnos_empleado.html' generado con éxito.")

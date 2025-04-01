@@ -1,9 +1,8 @@
-
 import pandas as pd
 
 from data_processing import process_data
 from optimization import optimize_shifts 
-from reports import report_by_worker, report_by_shop
+from reports import report_by_worker, report_by_shop, report_global
 
 
 def main():
@@ -42,10 +41,13 @@ def main():
     df_assignments = optimize_shifts (df_shifts, df_workers.head(12))
 
     # Generamos el reporte por trabajador
-    # report_by_worker(df_assignments, df_workers, total_days_in_month)
+    report_by_worker(df_assignments, df_workers, total_days_in_month)
 
     # Generamos el reporte por tienda
-    # report_by_shop(df_assignments)
+    report_by_shop(df_assignments)
+
+    # Generamos el reporte global
+    report_global(df_assignments, df_workers, df_shifts)
 
 
 
