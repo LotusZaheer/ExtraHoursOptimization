@@ -165,6 +165,29 @@ def generate_shop_calendar(init_data):
                 padding: 2px 5px; 
                 border-radius: 3px; 
             }}
+            .workers-summary {{
+                margin: 20px 0;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+            }}
+            .workers-summary h3 {{ margin-top: 0; }}
+            .workers-hours-list {{
+                display: flex;
+                flex-wrap: wrap;
+                gap: 15px;
+            }}
+            .worker-hours {{
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+            }}
+            .worker-name {{
+                padding: 5px 10px;
+                border-radius: 3px;
+            }}
         </style>
     </head>
     <body>
@@ -179,6 +202,10 @@ def generate_shop_calendar(init_data):
     html += """
         </select>
         <h2 id='tienda-title'></h2>
+        <div id='workers-summary' class='workers-summary'>
+            <h3>Resumen de trabajadores y horas:</h3>
+            <div id='workers-hours-list'></div>
+        </div>
         <div id='horarios-tienda' class='horarios-tienda'>
             <h3>Horarios de la tienda por día:</h3>
             <div class='horarios-grid' id='horarios-grid'></div>
@@ -208,23 +235,6 @@ def generate_shop_calendar(init_data):
     html += f"""
             </div>
         </div>
-        <div class='legend'>
-            <h3>Colores por trabajador:</h3>
-    """
-    
-    for trabajador, color in colores_trabajadores.items():
-        html += f"<div class='legend-item' style='background: {color};'>{trabajador}</div>"
-
-    html += """
-            <br>
-            <h3>Colores por horario:</h3>
-    """
-    
-    for horario, color in colores_horarios.items():
-        html += f"<div class='legend-item' style='background: {color};'>{horario}</div>"
-
-    html += f"""
-        </div>
         <script>
             var data = {data_json};
             var coloresTrabajadores = {colores_trabajadores_json};
@@ -233,6 +243,35 @@ def generate_shop_calendar(init_data):
             var festivos = {festivos_json};
             var diasMantenimiento = {dias_mantenimiento_json};
             var horariosTiendas = {horarios_tiendas_json};
+
+            // Función para actualizar el resumen de trabajadores y horas
+            function actualizarResumenTrabajadores(tienda) {{
+                var workersHoursList = document.getElementById('workers-hours-list');
+                workersHoursList.innerHTML = '';
+                
+                // Obtener turnos de la tienda
+                var turnosTienda = data.filter(t => t['Nombre Tienda'] === tienda);
+                
+                // Agrupar horas por trabajador
+                var horasPorTrabajador = {{}};
+                turnosTienda.forEach(turno => {{
+                    if (!horasPorTrabajador[turno['Nombre']]) {{
+                        horasPorTrabajador[turno['Nombre']] = 0;
+                    }}
+                    horasPorTrabajador[turno['Nombre']] += turno['Horas turno'];
+                }});
+                
+                // Mostrar resumen
+                Object.entries(horasPorTrabajador).forEach(([trabajador, horas]) => {{
+                    var colorTrabajador = coloresTrabajadores[trabajador];
+                    workersHoursList.innerHTML += `
+                        <div class="worker-hours">
+                            <span class="worker-name" style="background: ${{colorTrabajador}};">${{trabajador}}</span>
+                            <span>${{horas.toFixed(2)}} horas</span>
+                        </div>
+                    `;
+                }});
+            }}
 
             // Función para mostrar horarios de la tienda
             function mostrarHorariosTienda(tienda) {{
@@ -317,6 +356,9 @@ def generate_shop_calendar(init_data):
                         `;
                     }}
                 }});
+                
+                // Actualizar el resumen de trabajadores y horas
+                actualizarResumenTrabajadores(tienda);
             }});
         </script>
     </body>
