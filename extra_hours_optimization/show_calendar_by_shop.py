@@ -5,25 +5,31 @@ import calendar
 import matplotlib.colors as mcolors
 import holidays
 
-colores_disponibles = list(mcolors.TABLEAU_COLORS.values())
+colores_disponibles = [
+    "#FE0000", "#FED500", "#0485AD", "#18A222", "#7B00CB",
+    "#FE00C6", "#0C54DF", "#087376", "#AD002F", "#BE5504",
+    "#84D401", "#0A2683", "#9B8947", "#00CE94", "#ED7014",
+    "#3B8761", "#D10056", "#67032F", "#EB8FE9", "#064D06"
+]
+
+print(colores_disponibles)
+
 
 def load_data():
     df = pd.read_csv('../outputs/asignacion_turnos.csv')
     horarios_tiendas = pd.read_csv('../intermediate_data/data.csv')
     return df, horarios_tiendas
 
-def generate_shop_calendar(init_data):
+def generate_shop_calendar(init_data, stores_data):
     print("Generando calendario de turnos por tienda...")
     data, horarios_tiendas = load_data()
-
-    
 
     # Obtener días festivos
     holidays_list = holidays.country_holidays(init_data['country'], years=init_data['year'])
     festivos = [day.day for day in holidays_list.keys() if day.month == init_data['month']]
 
     # Obtener días de mantenimiento por tienda
-    dias_mantenimiento = init_data['maintenance_days_by_store']
+    dias_mantenimiento = {store["store"]: store["maintenance_days"] for store in stores_data}
 
     # Asignar colores a trabajadores y horarios
     trabajadores_unicos = data['Nombre'].unique()

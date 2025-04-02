@@ -13,14 +13,14 @@ from config import get_config
 
 def main():
 
-    init_data, workers, _ = get_config()
+    init_data, workers, stores_data = get_config()
 
     generate_test_data()
 
     process_workers(workers, init_data)
 
     # Pre-procesamos los datos
-    process_data(init_data)
+    process_data(init_data, stores_data)
 
     # Cargamos los datos procesados
     df_shifts = pd.read_csv("../intermediate_data/turnos_expandidos.csv")
@@ -53,7 +53,7 @@ def main():
     generate_worker_calendar()
 
     # Generamos el calendario por tienda
-    generate_shop_calendar(init_data)
+    generate_shop_calendar(init_data, stores_data)
 
 
 if __name__ == "__main__":

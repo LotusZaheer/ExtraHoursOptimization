@@ -2,10 +2,6 @@ import calendar
 
 def get_config():
     init_data = {
-        'holidays_are_availables': {'T_MB': False, 'T_EC': True, 'T_CT': True},
-        'maintenance_days_by_store': {
-            "T_EC": [20],
-        },
         'month': 1,
         'year': 2025,
         'country': "CO",
@@ -32,6 +28,8 @@ def get_config():
     stores_data = [
         {
             "store": "T_MB",
+            "holidays_available": False,
+            "maintenance_days": [],
             "opening_hours": {
                 "start": 9,
                 "end": 18,
@@ -43,6 +41,8 @@ def get_config():
         },
         {
             "store": "T_EC",
+            "holidays_available": True,
+            "maintenance_days": [20],
             "opening_hours": {
                 "start": 7,
                 "end": 20,
@@ -65,6 +65,8 @@ def get_config():
         },
         {
             "store": "T_CT",
+            "holidays_available": True,
+            "maintenance_days": [],
             "opening_hours": {
                 "start": 6,
                 "end": 20,

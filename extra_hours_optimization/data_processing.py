@@ -43,13 +43,12 @@ def get_days_of_month(day_of_week, available_holidays, maintenance_days, year=20
         )
 
 
-def process_data(init_data):
-
-    holidays_are_availables = init_data['holidays_are_availables']
+def process_data(init_data, stores_data):
+    holidays_are_availables = {store["store"]: store["holidays_available"] for store in stores_data}
+    maintenance_days_by_store = {store["store"]: store["maintenance_days"] for store in stores_data}
     month = init_data['month']
     year = init_data['year']
     country = init_data['country']
-    maintenance_days_by_store = init_data['maintenance_days_by_store']
 
     df = pd.read_csv("../intermediate_data/data.csv")
 
