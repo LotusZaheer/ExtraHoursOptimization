@@ -7,6 +7,9 @@ def generate_store_shifts():
     # Lista para almacenar todas las filas
     rows = []
 
+    # Lista de campos que no son secciones de horarios
+    non_section_fields = ["store", "holidays_available", "maintenance_days", "opening_hours", "shifts"]
+
     for store_data in stores_data:
         store = store_data["store"]
         
@@ -16,7 +19,7 @@ def generate_store_shifts():
         
         for shift in store_data["shifts"]:
             shift_hours = shift["end"] - shift["start"]
-            weekly_hours = shift_hours * len(opening_hours["days"])
+            weekly_hours = shift_hours * len(opening_hours["days"]) * shift["people"]
             
             rows.append({
                 "Nombre Tienda": store,
@@ -30,82 +33,37 @@ def generate_store_shifts():
                 "Horas turno": shift_hours,
                 "Cantidad personas (con este turno)": shift["people"],
                 "Horas a trabajar por semana": weekly_hours,
-                "Horas extra posibles": 0
+                "Horas extra posibles": 0,
+                "Tipo de horario": "regular"
             })
 
-        # Procesar domingo si existe
-        if "sunday" in store_data:
-            sunday_data = store_data["sunday"]
-            hours_open = sunday_data["opening_hours"]["end"] - sunday_data["opening_hours"]["start"]
-            
-            for shift in sunday_data["shifts"]:
-                shift_hours = shift["end"] - shift["start"]
-                weekly_hours = shift_hours
+        # Procesar todas las secciones especiales dinámicamente
+        for section_name, section_data in store_data.items():
+            # Solo procesar si no es un campo de configuración principal
+            if section_name not in non_section_fields:
+                hours_open = section_data["opening_hours"]["end"] - section_data["opening_hours"]["start"]
                 
-                rows.append({
-                    "Nombre Tienda": store,
-                    "Días": ", ".join(sunday_data["opening_hours"]["days"]),
-                    "Cantidad de días": len(sunday_data["opening_hours"]["days"]),
-                    "Hora Inicio punto": sunday_data["opening_hours"]["start"],
-                    "Hora Final punto": sunday_data["opening_hours"]["end"],
-                    "Horas Apertura por día": hours_open,
-                    "Inicio turno": shift["start"],
-                    "Fin turno": shift["end"],
-                    "Horas turno": shift_hours,
-                    "Cantidad personas (con este turno)": shift["people"],
-                    "Horas a trabajar por semana": weekly_hours,
-                    "Horas extra posibles": 0
-                })
-
-        # Procesar fin de semana si existe
-        if "weekend" in store_data:
-            weekend_data = store_data["weekend"]
-            hours_open = weekend_data["opening_hours"]["end"] - weekend_data["opening_hours"]["start"]
-            
-            for shift in weekend_data["shifts"]:
-                shift_hours = shift["end"] - shift["start"]
-                weekly_hours = shift_hours * len(weekend_data["opening_hours"]["days"])
-                
-                rows.append({
-                    "Nombre Tienda": store,
-                    "Días": ", ".join(weekend_data["opening_hours"]["days"]),
-                    "Cantidad de días": len(weekend_data["opening_hours"]["days"]),
-                    "Hora Inicio punto": weekend_data["opening_hours"]["start"],
-                    "Hora Final punto": weekend_data["opening_hours"]["end"],
-                    "Horas Apertura por día": hours_open,
-                    "Inicio turno": shift["start"],
-                    "Fin turno": shift["end"],
-                    "Horas turno": shift_hours,
-                    "Cantidad personas (con este turno)": shift["people"],
-                    "Horas a trabajar por semana": weekly_hours,
-                    "Horas extra posibles": 0
-                })
-
-        # Procesar días festivos si existen
-        if "holiday" in store_data:
-            holiday_data = store_data["holiday"]
-            hours_open = holiday_data["opening_hours"]["end"] - holiday_data["opening_hours"]["start"]
-            
-            for shift in holiday_data["shifts"]:
-                shift_hours = shift["end"] - shift["start"]
-                weekly_hours = shift_hours * len(holiday_data["opening_hours"]["days"])
-                
-                rows.append({
-                    "Nombre Tienda": store,
-                    "Días": ", ".join(holiday_data["opening_hours"]["days"]),
-                    "Cantidad de días": len(holiday_data["opening_hours"]["days"]),
-                    "Hora Inicio punto": holiday_data["opening_hours"]["start"],
-                    "Hora Final punto": holiday_data["opening_hours"]["end"],
-                    "Horas Apertura por día": hours_open,
-                    "Inicio turno": shift["start"],
-                    "Fin turno": shift["end"],
-                    "Horas turno": shift_hours,
-                    "Cantidad personas (con este turno)": shift["people"],
-                    "Horas a trabajar por semana": weekly_hours,
-                    "Horas extra posibles": 0
-                })
+                for shift in section_data["shifts"]:
+                    shift_hours = shift["end"] - shift["start"]
+                    weekly_hours = shift_hours * len(section_data["opening_hours"]["days"]) * shift["people"]
+                    
+                    rows.append({
+                        "Nombre Tienda": store,
+                        "Días": ", ".join(section_data["opening_hours"]["days"]),
+                        "Cantidad de días": len(section_data["opening_hours"]["days"]),
+                        "Hora Inicio punto": section_data["opening_hours"]["start"],
+                        "Hora Final punto": section_data["opening_hours"]["end"],
+                        "Horas Apertura por día": hours_open,
+                        "Inicio turno": shift["start"],
+                        "Fin turno": shift["end"],
+                        "Horas turno": shift_hours,
+                        "Cantidad personas (con este turno)": shift["people"],
+                        "Horas a trabajar por semana": weekly_hours,
+                        "Horas extra posibles": 0,
+                        "Tipo de horario": section_name
+                    })
 
     # Crear DataFrame y guardar a CSV
     df = pd.DataFrame(rows)
-    df.to_csv("../intermediate_data/data_.csv", index=False, encoding='utf-8')
+    df.to_csv("../intermediate_data/data.csv", index=False, encoding='utf-8')
     print("Archivo de prueba generado: data.csv")
