@@ -7,38 +7,15 @@ from reports import report_by_worker, report_by_shop, report_global
 from show_calendar_by_worker import generate_worker_calendar
 from show_calendar_by_shop import generate_shop_calendar
 from create_data import process_employees
+from test_data_generation import generate_test_data
+from config import get_config
 
 
 def main():
 
-    init_data = {
-    'holidays_are_availables': {'T_MB': False, 'T_EC': True, 'T_CT': True},
-    'maintenance_days_by_store': {
-    #"T_MB": {5,},
-    "T_EC": [20],
-        },
-    'month': 1,
-    'year': 2025,
-    'country': "CO",
-    'weekly_hours': 46
-    }
-    init_data['total_days_in_month'] = calendar.monthrange(init_data['year'], init_data['month'])[1]
+    init_data, workers, _ = get_config()
 
-    workers = [
-    {"nombre": "E_AG", "punto": "T_MB", "vacaciones": []},
-    {"nombre": "E_CG"},
-    {"nombre": "E_YS", "punto": "T_EC", "vacaciones": [2,3,4,7,8,9,10,11,13,14,15,16,17,18,20]},
-    {"nombre": "E_ZC"},
-    {"nombre": "E_NJ"},
-    {"nombre": "E_LV", "punto": "T_CT"},
-    {"nombre": "E_LR", "vacaciones": [25,26]},
-    {"nombre": "E_JM"},
-    {"nombre": "E_AM"},
-    {"nombre": "E_NB", "incapacidades": [7,8,9,10]},
-    {"nombre": "E_JR"},
-    {"nombre": "E_AQ"},
-    {"nombre": "E_AD"}
-    ]
+    generate_test_data()
 
     process_employees(workers, init_data)
 
