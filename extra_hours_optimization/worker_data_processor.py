@@ -8,7 +8,7 @@ def calculate_monthly_hours(month: int, year: int, weekly_hours: int):
     monthly_hours = round(weekly_hours * weeks_in_month)
     return monthly_hours
 
-def process_workers(workers, init_data):
+def process_worker_data(workers, init_data):
 
     month, year, weekly_hours = init_data['month'], init_data['year'], init_data['weekly_hours']
 

@@ -2,7 +2,6 @@
 import pandas as pd
 import json
 import calendar
-import matplotlib.colors as mcolors
 import holidays
 
 colores_disponibles = [
@@ -11,9 +10,6 @@ colores_disponibles = [
     "#84D401", "#0A2683", "#9B8947", "#00CE94", "#ED7014",
     "#3B8761", "#D10056", "#67032F", "#EB8FE9", "#064D06"
 ]
-
-print(colores_disponibles)
-
 
 def load_data():
     df = pd.read_csv('../outputs/asignacion_turnos.csv')

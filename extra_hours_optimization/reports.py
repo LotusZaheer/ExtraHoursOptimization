@@ -116,8 +116,8 @@ def report_by_shop(df_assignments, df_workers):
         print(f"  Cantidad de trabajadores: {row['Cantidad de trabajadores']}")
         print(f"  Días trabajados: {row['Días trabajados']}")
         print("\n  Horas disponibles por empleado:")
-        for hours_info in row['Horas por empleado']:
-            print(f"    {hours_info}")
+        #for hours_info in row['Horas por empleado']:
+        #    print(f"    {hours_info}")
 
 def report_global(df_assignments, df_workers, df_shifts):
     """

@@ -63,8 +63,8 @@ def calculate_minimum_workers(df_shifts, df_workers):
             workers_needed.extend(best_workers)
             current_hours += best_hours
             print(f"\nEmpleados adicionales seleccionados:")
-            for worker in best_workers:
-                print(f"- {worker} con {available_hours_by_worker[worker]} horas")
+            #for worker in best_workers:
+            #    print(f"- {worker} con {available_hours_by_worker[worker]} horas")
 
     print(f"\nCálculo de empleados mínimos necesarios:")
     print(f"Total horas necesarias: {total_hours_needed:.2f}")

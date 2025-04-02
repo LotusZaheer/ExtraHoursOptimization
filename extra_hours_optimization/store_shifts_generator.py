@@ -1,7 +1,7 @@
 import pandas as pd
 from config import get_config
 
-def generate_test_data():
+def generate_store_shifts():
     _, _, stores_data = get_config()
     
     # Lista para almacenar todas las filas
