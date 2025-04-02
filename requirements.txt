@@ -1,3 +1,6 @@
+glpk
 holidays
+matplotlib
+numpy
 pandas
 pyomo
