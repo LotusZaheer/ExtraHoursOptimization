@@ -1,54 +1,115 @@
-import yaml
-from pathlib import Path
-from typing import Dict, Any
+import calendar
 
-class Config:
-    def __init__(self, config_path: str = "../config.yaml"):
-        self.config_path = Path(config_path)
-        self.config = self._load_config()
-    
-    def _load_config(self) -> Dict[str, Any]:
-        """Carga la configuración desde el archivo YAML."""
-        if not self.config_path.exists():
-            raise FileNotFoundError(f"El archivo de configuración {self.config_path} no existe")
-        
-        with open(self.config_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
-    
-    @property
-    def month(self) -> int:
-        return self.config['general']['month']
-    
-    @property
-    def year(self) -> int:
-        return self.config['general']['year']
-    
-    @property
-    def country(self) -> str:
-        return self.config['general']['country']
-    
-    @property
-    def holidays_availability(self) -> Dict[str, bool]:
-        return {
-            store: data['holidays_available']
-            for store, data in self.config['stores'].items()
+def get_config():
+    init_data = {
+        'month': 1,
+        'year': 2025,
+        'country': "CO",
+        'weekly_hours': 46
+    }
+    init_data['total_days_in_month'] = calendar.monthrange(init_data['year'], init_data['month'])[1]
+
+    workers = [
+        {"nombre": "E_AG", "punto": "T_MB", "vacaciones": []},
+        {"nombre": "E_CG"},
+        {"nombre": "E_YS", "punto": "T_EC", "vacaciones": [2,3,4,7,8,9,10,11,13,14,15,16,17,18,20]},
+        {"nombre": "E_ZC"},
+        {"nombre": "E_NJ"},
+        {"nombre": "E_LV", "punto": "T_CT"},
+        {"nombre": "E_LR", "vacaciones": [25,26]},
+        {"nombre": "E_JM"},
+        {"nombre": "E_AM"},
+        {"nombre": "E_NB", "incapacidades": [7,8,9,10]},
+        {"nombre": "E_JR"},
+        {"nombre": "E_AQ"},
+        {"nombre": "E_AD"}
+    ]
+
+    stores_data = [
+        {
+            "store": "T_MB",
+            "holidays_available": False,
+            "maintenance_days": [],
+            "opening_hours": {
+                "start": 9,
+                "end": 18,
+                "days": ["LU", "MA", "MI", "JU", "VI", "SA", "DO"]
+            },
+            "shifts": [
+                {"start": 9, "end": 18, "people": 1}
+            ]
+        },
+        {
+            "store": "T_EC",
+            "holidays_available": True,
+            "maintenance_days": [20],
+            "opening_hours": {
+                "start": 7,
+                "end": 20,
+                "days": ["LU", "MA", "MI", "JU", "VI", "SA"]
+            },
+            "shifts": [
+                {"start": 7, "end": 15, "people": 1},
+                {"start": 12, "end": 20, "people": 1}
+            ],
+            "sunday": {
+                "opening_hours": {
+                    "start": 9,
+                    "end": 18,
+                    "days": ["DO"]
+                },
+                "shifts": [
+                    {"start": 9, "end": 18, "people": 1}
+                ]
+            }
+        },
+        {
+            "store": "T_CT",
+            "holidays_available": True,
+            "maintenance_days": [],
+            "opening_hours": {
+                "start": 6,
+                "end": 20,
+                "days": ["LU", "MA", "MI", "JU"]
+            },
+            "shifts": [
+                {"start": 6, "end": 14, "people": 2},
+                {"start": 13, "end": 20, "people": 4}
+            ],
+            "weekend": {
+                "opening_hours": {
+                    "start": 6,
+                    "end": 21,
+                    "days": ["VI", "SA"]
+                },
+                "shifts": [
+                    {"start": 6, "end": 14, "people": 2},
+                    {"start": 13, "end": 21, "people": 4}
+                ]
+            },
+            "sunday": {
+                "opening_hours": {
+                    "start": 6,
+                    "end": 21,
+                    "days": ["DO"]
+                },
+                "shifts": [
+                    {"start": 6, "end": 14, "people": 3},
+                    {"start": 13, "end": 21, "people": 5}
+                ]
+            },
+            "holiday": {
+                "opening_hours": {
+                    "start": 6,
+                    "end": 21,
+                    "days": ["FE"]
+                },
+                "shifts": [
+                    {"start": 6, "end": 14, "people": 2},
+                    {"start": 13, "end": 21, "people": 5}
+                ]
+            }
         }
-    
-    @property
-    def maintenance_days(self) -> Dict[str, list]:
-        return {
-            store: data['maintenance_days']
-            for store, data in self.config['stores'].items()
-        }
-    
-    @property
-    def hours_per_day(self) -> float:
-        return self.config['schedule']['hours_per_day']
-    
-    @property
-    def max_monthly_hours(self) -> int:
-        return self.config['schedule']['max_monthly_hours']
-    
-    @property
-    def max_overtime_hours(self) -> int:
-        return self.config['schedule']['max_overtime_hours'] 
+    ]
+
+    return init_data, workers, stores_data 

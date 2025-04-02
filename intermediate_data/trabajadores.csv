@@ -1,0 +1,14 @@
+Nombre,Encargada punto,Descanso,Cantidad Días Descanso,Incapacidad,Cantidad Días Incapacidad,Vacaciones,Cantidad de días Vacaciones,Cantidad de horas disponibles del mes,Horas extra disponibles
+E_AG,T_MB,,0,,0,,0,204,10
+E_CG,,,0,,0,,0,204,10
+E_YS,T_EC,,0,,0,"2,3,4,7,8,9,10,11,13,14,15,16,17,18,20",15,89,0
+E_ZC,,,0,,0,,0,204,10
+E_NJ,,,0,,0,,0,204,10
+E_LV,T_CT,,0,,0,,0,204,10
+E_LR,,,0,,0,"25,26",2,188,0
+E_JM,,,0,,0,,0,204,10
+E_AM,,,0,,0,,0,204,10
+E_NB,,,0,"7,8,9,10",4,,0,173,0
+E_JR,,,0,,0,,0,204,10
+E_AQ,,,0,,0,,0,204,10
+E_AD,,,0,,0,,0,204,10

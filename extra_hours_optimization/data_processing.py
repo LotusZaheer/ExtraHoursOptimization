@@ -1,5 +1,3 @@
-
-
 import pandas as pd
 import holidays
 import calendar
@@ -24,7 +22,6 @@ def get_days_of_month(day_of_week, available_holidays, maintenance_days, year=20
 
     last_day = calendar.monthrange(year, month)[1]
     holidays_list = holidays.country_holidays(country, years=year)
-    maintenance_days = maintenance_days
 
     if available_holidays:
         if day_of_week == "FE":
@@ -46,15 +43,14 @@ def get_days_of_month(day_of_week, available_holidays, maintenance_days, year=20
         )
 
 
-def process_data(init_data):
-
-    holidays_are_availables = init_data['holidays_are_availables']
+def process_data(init_data, stores_data):
+    holidays_are_availables = {store["store"]: store["holidays_available"] for store in stores_data}
+    maintenance_days_by_store = {store["store"]: store["maintenance_days"] for store in stores_data}
     month = init_data['month']
     year = init_data['year']
     country = init_data['country']
-    maintenance_days_by_store = init_data['maintenance_days_by_store']
 
-    df = pd.read_csv("../inputs/data.csv")
+    df = pd.read_csv("../intermediate_data/data.csv")
 
     df_shifts = pd.DataFrame([row for rows in df.apply(expand_days, axis=1) for row in rows])
     df_shifts.reset_index(drop=True, inplace=True)

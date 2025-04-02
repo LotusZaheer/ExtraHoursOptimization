@@ -4,40 +4,42 @@ Sistema de optimización de asignación de turnos y horas extra en múltiples ti
 
 ## Descripción
 
-El proyecto asignación turnos laborales y horas extra considerando las siguientes restricciones:
+El proyecto optimiza la asignación de turnos laborales considerando:
 
 - Disponibilidad de empleados
 - Límites de horas mensuales
 - Días festivos y mantenimiento por tienda
-- Vacaciones e incapacidades por empleado
-- Asignación de empleados encargados por tienda
+- Vacaciones e incapacidades
+- Asignación de empleados encargados
 
 ## Estructura del Proyecto
 
 ```
 extra_hours_optimization/
-├── data_processing.py    # Procesamiento de datos de entrada
-├── optimization.py       # Modelo de optimización
-├── reports.py           # Generación de reportes
-├── main.py             # Punto de entrada principal
-└── logger.py           # Configuración de logging
+├── config.py              # Configuración del sistema
+├── create_data.py       # Generación de datos de empleados
+├── data_processing.py     # Procesamiento de datos de entrada
+├── main.py              # Punto de entrada principal
+├── optimization.py        # Modelo de optimización
+├── reports.py            # Generación de reportes
+├── show_calendar_by_shop.py    # Visualización por tienda
+├── show_calendar_by_worker.py  # Visualización por empleado
+└── test_data_generation.py     # Generación de datos de prueba
 
-inputs/
+intermediate_data/                  # Datos intermedios del proceso
 ├── data.csv
+├── turnos_expandidos.csv
 └── trabajadores.csv
 
-outputs/
+outputs/                 # Resultados generados
 ├── asignacion_turnos.csv
 ├── horas_por_trabajador.csv
 └── horas_por_tienda.csv
 
-scripts/
-├── create_data.py
-├── show_calendar_by_shop.py
-├── show_calendar_by_worker.py
-├── what_holidays.py
-└── how_many_days.py
-
+intermediate_data/       # Datos intermedios del proceso
+logs/                   # Registros del sistema
+html/                   # Archivos de visualización
+scripts/                # Scripts adicionales
 ```
 
 ## Scripts Adicionales Disponibles
@@ -85,17 +87,10 @@ Genera una visualización HTML (`turnos_empleado.html`) que muestra:
 El sistema genera tres archivos CSV:
 
 - `asignacion_turnos.csv`: Asignación de turnos calculada
-- `horas_por_trabajador.csv`: Metricas por empleado
-- `horas_por_tienda.csv`: Metricas por tienda
-
-## Características Principales
-
-- Optimización de asignación de turnos
-- Manejo de horas extra
-- Consideración de días festivos y mantenimiento
-- Reportes detallados por trabajador y tienda
+- `horas_por_trabajador.csv`: Métricas por empleado
+- `horas_por_tienda.csv`: Métricas por tienda
 
 ## Notas
 
-- El proyecto está configurado para trabajar en Enero de 2025
-- Los cálculos de horas consideran un factor de 7.66 horas por día, eso tomando las horas por semana divididas entre 6, para considerar un dia de descanso
+- Configurado para trabajar en Enero de 2025
+- Factor de 7.66 horas por día (horas semanales/6)

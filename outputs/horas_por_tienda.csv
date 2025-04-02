@@ -1,4 +1,4 @@
-Nombre Tienda,Horas turno,Horas extra,Cantidad de trabajadores,Lista de trabajadores,Días trabajados
-T_CT,1504,0,9,"['E_CG', 'E_NJ', 'E_ZC', 'E_LV', 'E_LR', 'E_JM', 'E_JR', 'E_AM', 'E_NB']",31
-T_EC,436,0,7,"['E_AD', 'E_AQ', 'E_NJ', 'E_AM', 'E_ZC', 'E_CG', 'E_JR']",29
-T_MB,279,0,5,"['E_AD', 'E_AG', 'E_AM', 'E_AQ', 'E_LR']",31
+Nombre Tienda,Horas trabajadas,Cantidad de trabajadores,Lista de trabajadores,Horas por empleado,Horas disponibles,Días trabajados
+T_CT,1504,10,"['E_LV', 'E_AQ', 'E_CG', 'E_ZC', 'E_NJ', 'E_LR', 'E_NB', 'E_JM', 'E_AM', 'E_JR']","['E_LV: 204.00 horas', 'E_AQ: 204.00 horas', 'E_CG: 204.00 horas', 'E_ZC: 204.00 horas', 'E_NJ: 204.00 horas', 'E_LR: 188.00 horas', 'E_NB: 173.00 horas', 'E_JM: 204.00 horas', 'E_AM: 204.00 horas', 'E_JR: 204.00 horas']",1993,31
+T_EC,420,8,"['E_ZC', 'E_YS', 'E_CG', 'E_NB', 'E_JM', 'E_NJ', 'E_AM', 'E_AQ']","['E_ZC: 204.00 horas', 'E_YS: 89.00 horas', 'E_CG: 204.00 horas', 'E_NB: 173.00 horas', 'E_JM: 204.00 horas', 'E_NJ: 204.00 horas', 'E_AM: 204.00 horas', 'E_AQ: 204.00 horas']",1486,28
+T_MB,279,4,"['E_AG', 'E_AM', 'E_NB', 'E_LR']","['E_AG: 204.00 horas', 'E_AM: 204.00 horas', 'E_NB: 173.00 horas', 'E_LR: 188.00 horas']",769,31
