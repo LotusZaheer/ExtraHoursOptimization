@@ -8,7 +8,7 @@ def calculate_monthly_hours(month: int, year: int, weekly_hours: int):
     monthly_hours = round(weekly_hours * weeks_in_month)
     return monthly_hours
 
-def process_employees(employees, init_data):
+def process_workers(workers, init_data):
 
     month, year, weekly_hours = init_data['month'], init_data['year'], init_data['weekly_hours']
 
@@ -17,10 +17,10 @@ def process_employees(employees, init_data):
     factor = 7.66  # average hours per day (weekly hours / working days per week)
     data = []
     
-    for employee in employees:
-        sick_days = employee.get('incapacidades', [])
-        vacation_days = employee.get('vacaciones', [])
-        rest_days = employee.get('descanso', [])
+    for worker in workers:
+        sick_days = worker.get('incapacidades', [])
+        vacation_days = worker.get('vacaciones', [])
+        rest_days = worker.get('descanso', [])
         
         lost_hours_sick = len(sick_days) * factor
         lost_hours_vacation = len(vacation_days) * factor
@@ -30,8 +30,8 @@ def process_employees(employees, init_data):
         extra_hours = 10 if available_hours > 200 else 0  # Adjustment based on reference table
         
         data.append([
-            employee['nombre'],
-            employee.get('punto', ''),
+            worker['nombre'],
+            worker.get('punto', ''),
             ",".join(map(str, rest_days)) if rest_days else "",
             len(rest_days) if rest_days else 0,
             ",".join(map(str, sick_days)) if sick_days else "",

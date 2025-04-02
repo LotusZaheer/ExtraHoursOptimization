@@ -6,7 +6,7 @@ from optimization import optimize_shifts
 from reports import report_by_worker, report_by_shop, report_global
 from show_calendar_by_worker import generate_worker_calendar
 from show_calendar_by_shop import generate_shop_calendar
-from create_data import process_employees
+from create_data import process_workers
 from test_data_generation import generate_test_data
 from config import get_config
 
@@ -17,7 +17,7 @@ def main():
 
     generate_test_data()
 
-    process_employees(workers, init_data)
+    process_workers(workers, init_data)
 
     # Pre-procesamos los datos
     process_data(init_data)

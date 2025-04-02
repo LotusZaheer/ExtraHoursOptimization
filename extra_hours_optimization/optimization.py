@@ -150,7 +150,7 @@ def optimize_shifts(df_shifts, df_workers):
     model.monthly_hours_limit = Constraint(workers, rule=monthly_hours_limit_rule)
 
 
-    ################ Funciones de calculo de expresiones ################ 
+        ################ Funciones de calculo de expresiones ################ 
     def calculate_required_hours_store(store):
         return sum(
             df_shifts.loc[t, "Horas turno"] * df_shifts.loc[t, "Cantidad personas (con este turno)"]
@@ -158,7 +158,7 @@ def optimize_shifts(df_shifts, df_workers):
         )
 
 
-    def calculate_available_hours_store_employees(shop):
+    def calculate_available_hours_store_workers(shop):
         empleados_tienda = set()
         for t in shifts:
             if df_shifts.loc[t, "Nombre Tienda"] == shop:
@@ -170,9 +170,12 @@ def optimize_shifts(df_shifts, df_workers):
             for e in empleados_tienda
         )
 
+    def calculate_available_hours_store(shop):
+        return (calculate_available_hours_store_workers(shop) - calculate_required_hours_store(shop))
+
     ################ Definimos la función objetivo ################ 
     sum_differences = sum(
-        (calculate_available_hours_store_employees(shop) - calculate_required_hours_store(shop))
+        (calculate_available_hours_store(shop))
         for shop in shops
     )
 
