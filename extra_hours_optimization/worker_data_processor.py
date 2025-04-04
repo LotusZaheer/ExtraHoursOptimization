@@ -1,6 +1,7 @@
 import calendar
 import pandas as pd
 import math
+import ast
 
 def calculate_monthly_hours(month: int, year: int, weekly_hours: int):
     days_in_month = calendar.monthrange(year, month)[1]
@@ -8,45 +9,59 @@ def calculate_monthly_hours(month: int, year: int, weekly_hours: int):
     monthly_hours = round(weekly_hours * weeks_in_month)
     return monthly_hours
 
-def process_worker_data(workers, init_data):
+def process_worker_data(init_data, workers = {}, input_format='csv'):
+    df = pd.read_csv("../inputs/workers.csv")
 
+    # Calcular horas mensuales
     month, year, weekly_hours = init_data['month'], init_data['year'], init_data['weekly_hours']
-
     monthly_hours = calculate_monthly_hours(month, year, weekly_hours)
-
-    factor = 7.66  # average hours per day (weekly hours / working days per week)
-    data = []
     
-    for worker in workers:
-        sick_days = worker.get('incapacidades', [])
-        vacation_days = worker.get('vacaciones', [])
-        rest_days = worker.get('descanso', [])
-        
-        lost_hours_sick = len(sick_days) * factor
-        lost_hours_vacation = len(vacation_days) * factor
+    # Factor de horas por día
+    factor = 7.66  # promedio de horas por día (horas semanales / días laborales por semana)
+    
+    print(df.dtypes)
 
-        available_hours = math.floor(max(0, monthly_hours - lost_hours_sick - lost_hours_vacation))
+    # Procesar listas de días
+    for col in ['incapacidades', 'vacaciones', 'descanso']:
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) and x.strip().startswith('[') else [])
+            df[f'Cantidad Días {col.capitalize()}'] = df[col].apply(len)
+        else:
+            df[col] = [[] for _ in range(len(df))]
+            df[f'Cantidad Días {col.capitalize()}'] = 0
 
-        extra_hours = 10 if available_hours > 200 else 0  # Adjustment based on reference table
-        
-        data.append([
-            worker['nombre'],
-            worker.get('punto', ''),
-            ",".join(map(str, rest_days)) if rest_days else "",
-            len(rest_days) if rest_days else 0,
-            ",".join(map(str, sick_days)) if sick_days else "",
-            len(sick_days) if sick_days else 0,
-            ",".join(map(str, vacation_days)) if vacation_days else "",
-            len(vacation_days) if vacation_days else 0,
-            available_hours,
-            extra_hours
-        ])
-    df = pd.DataFrame(data, columns=[
+    print(df)
+    
+    # Calcular horas disponibles
+    df['Horas perdidas por incapacidad'] = df['Cantidad Días Incapacidades'] * factor
+    df['Horas perdidas por vacaciones'] = df['Cantidad Días Vacaciones'] * factor
+    df['Cantidad de horas disponibles del mes'] = df.apply(
+        lambda row: math.floor(max(0, monthly_hours - row['Horas perdidas por incapacidad'] - row['Horas perdidas por vacaciones'])),
+        axis=1
+    )
+    
+    # Calcular horas extra disponibles
+    df['Horas extra disponibles'] = df['Cantidad de horas disponibles del mes'].apply(
+        lambda x: 10 if x > 200 else 0
+    )
+    
+    # Renombrar columnas para mantener consistencia
+    df = df.rename(columns={
+        'nombre': 'Nombre',
+        'punto': 'Encargada punto',
+        'incapacidades': 'Incapacidad',
+        'vacaciones': 'Vacaciones',
+        'descanso': 'Descanso'
+    })
+    
+    # Seleccionar y ordenar columnas
+    columns_order = [
         "Nombre", "Encargada punto", "Descanso", "Cantidad Días Descanso", 
-        "Incapacidad", "Cantidad Días Incapacidad", "Vacaciones", "Cantidad de días Vacaciones", 
+        "Incapacidad", "Cantidad Días Incapacidades", "Vacaciones", "Cantidad Días Vacaciones", 
         "Cantidad de horas disponibles del mes", "Horas extra disponibles"
-    ])
+    ]
+    df = df[columns_order]
     
+    # Guardar el resultado
     df.to_csv("../intermediate_data/trabajadores.csv", index=False, encoding='utf-8')
-
-    print("CSV generated: empleados_horas.csv")
+    print("CSV generado: trabajadores.csv")

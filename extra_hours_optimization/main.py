@@ -1,5 +1,6 @@
 import pandas as pd
-import calendar
+import argparse
+import ast
 
 from data_processing import process_data
 from optimization import optimize_shifts 
@@ -11,13 +12,22 @@ from store_shifts_generator import generate_store_shifts
 from config import get_config
 
 
-def main():
+def main(input_format='csv'):
+
+    print(f"Input format: {input_format}")
 
     init_data, workers, stores_data = get_config()
 
-    generate_store_shifts()
+    if input_format == 'json':
 
-    process_worker_data(workers, init_data)
+
+        generate_store_shifts()
+
+        process_worker_data(init_data, workers, input_format)
+
+    elif input_format == 'csv':
+
+        process_worker_data(init_data, input_format)
 
     # Pre-procesamos los datos
     process_data(init_data, stores_data)
@@ -29,12 +39,13 @@ def main():
     df_workers["Horas extra disponibles"] = df_workers["Horas extra disponibles"].fillna(0)
 
     # Convertimos las columnas de días a listas
-    df_workers["Descanso"] = df_workers["Descanso"].fillna(
-        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
-    df_workers["Incapacidad"] = df_workers["Incapacidad"].fillna(
-        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
-    df_workers["Vacaciones"] = df_workers["Vacaciones"].fillna(
-        "").apply(lambda x: list(map(int, str(x).split(","))) if x else [])
+    # Convertir las columnas de días a listas de enteros
+    for col in ["Descanso", "Incapacidad", "Vacaciones"]:
+        df_workers[col] = df_workers[col].fillna("").apply(
+            lambda x: ast.literal_eval(x) if isinstance(x, str) and x.strip().startswith("[") else (
+                list(map(int, str(x).split(","))) if str(x).strip() else []
+            )
+        )
 
 
     # Optimizamos los turnos
@@ -57,4 +68,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Optimización de horas extra')
+    parser.add_argument('--format', type=str, default='json', choices=['csv', 'json'],
+                      help='csv o json')
+    args = parser.parse_args()
+    main(args.format)
