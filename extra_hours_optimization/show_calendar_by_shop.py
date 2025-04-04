@@ -13,11 +13,12 @@ colores_disponibles = [
 
 def load_data():
     df = pd.read_csv('../outputs/asignacion_turnos.csv')
-    horarios_tiendas = pd.read_csv('../intermediate_data/data.csv')
+    horarios_tiendas = pd.read_csv('../intermediate_data/expanded_shifts.csv')
     return df, horarios_tiendas
 
-def generate_shop_calendar(init_data, stores_data):
+def generate_shop_calendar(init_data):
     print("Generando calendario de turnos por tienda...")
+    stores_data = init_data['stores_data']
     data, horarios_tiendas = load_data()
 
     # Obtener días festivos

@@ -43,14 +43,15 @@ def get_days_of_month(day_of_week, available_holidays, maintenance_days, year=20
         )
 
 
-def process_data(init_data, stores_data):
+def process_shifts_by_moth(init_data):
+    stores_data = init_data['stores_data']
     holidays_are_availables = {store["store"]: store["holidays_available"] for store in stores_data}
     maintenance_days_by_store = {store["store"]: store["maintenance_days"] for store in stores_data}
     month = init_data['month']
     year = init_data['year']
     country = init_data['country']
 
-    df = pd.read_csv("../intermediate_data/data.csv")
+    df = pd.read_csv("../intermediate_data/expanded_shifts.csv")
 
     df_shifts = pd.DataFrame([row for rows in df.apply(expand_days, axis=1) for row in rows])
     df_shifts.reset_index(drop=True, inplace=True)
@@ -72,4 +73,4 @@ def process_data(init_data, stores_data):
         df_shifts_expanded["Día del mes"], errors="coerce").dropna().astype(int)
     df_shifts_expanded = df_shifts_expanded.drop(columns=["Días del mes"])
     
-    df_shifts_expanded.to_csv("../intermediate_data/turnos_expandidos.csv", index=False)
+    df_shifts_expanded.to_csv("../intermediate_data/df_shifts_expanded.csv", index=False)

@@ -9,8 +9,7 @@ def calculate_monthly_hours(month: int, year: int, weekly_hours: int):
     monthly_hours = round(weekly_hours * weeks_in_month)
     return monthly_hours
 
-def process_worker_data(init_data, workers = {}, input_format='csv'):
-    df = pd.read_csv("../inputs/workers.csv")
+def process_worker_data(init_data, df):
 
     # Calcular horas mensuales
     month, year, weekly_hours = init_data['month'], init_data['year'], init_data['weekly_hours']
@@ -18,8 +17,6 @@ def process_worker_data(init_data, workers = {}, input_format='csv'):
     
     # Factor de horas por día
     factor = 7.66  # promedio de horas por día (horas semanales / días laborales por semana)
-    
-    print(df.dtypes)
 
     # Procesar listas de días
     for col in ['incapacidades', 'vacaciones', 'descanso']:
@@ -30,8 +27,7 @@ def process_worker_data(init_data, workers = {}, input_format='csv'):
             df[col] = [[] for _ in range(len(df))]
             df[f'Cantidad Días {col.capitalize()}'] = 0
 
-    print(df)
-    
+
     # Calcular horas disponibles
     df['Horas perdidas por incapacidad'] = df['Cantidad Días Incapacidades'] * factor
     df['Horas perdidas por vacaciones'] = df['Cantidad Días Vacaciones'] * factor
@@ -63,5 +59,5 @@ def process_worker_data(init_data, workers = {}, input_format='csv'):
     df = df[columns_order]
     
     # Guardar el resultado
-    df.to_csv("../intermediate_data/trabajadores.csv", index=False, encoding='utf-8')
+    df.to_csv("../intermediate_data/workers.csv", index=False, encoding='utf-8')
     print("CSV generado: trabajadores.csv")

@@ -1,4 +1,5 @@
 import pandas as pd
+import ast
 from pyomo.environ import (Constraint, ConcreteModel, Var, 
                            Binary, NonNegativeReals, 
                            minimize, maximize, 
@@ -78,6 +79,18 @@ def calculate_minimum_workers(df_shifts, df_workers):
     return workers_needed
 
 def optimize_shifts(df_shifts, df_workers):
+
+    df_workers["Horas extra disponibles"] = df_workers["Horas extra disponibles"].fillna(0)
+
+    # Convertimos las columnas de días a listas
+    # Convertir las columnas de días a listas de enteros
+    for col in ["Descanso", "Incapacidad", "Vacaciones"]:
+        df_workers[col] = df_workers[col].fillna("").apply(
+            lambda x: ast.literal_eval(x) if isinstance(x, str) and x.strip().startswith("[") else (
+                list(map(int, str(x).split(","))) if str(x).strip() else []
+            )
+        )
+
     # Calcular el número mínimo de empleados necesarios
     workers_needed = calculate_minimum_workers(df_shifts, df_workers)
     
