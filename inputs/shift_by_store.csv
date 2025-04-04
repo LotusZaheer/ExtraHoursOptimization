@@ -1,0 +1,13 @@
+Nombre Tienda,Días,Hora Inicio punto,Hora Final punto,Inicio turno,Fin turno,Horas turno,Cantidad personas (con este turno),Horas extra posibles
+T_MB,"LU, MA, MI, JU, VI, SA, DO",9,18,9,18,9,1,0
+T_EC,"LU, MA, MI, JU, VI, SA",7,20,7,15,8,1,0
+T_EC,"LU, MA, MI, JU, VI, SA",7,20,12,20,8,1,0
+T_EC,DO,9,18,9,18,9,1,0
+T_CT,"LU, MA, MI, JU",6,20,6,14,8,2,0
+T_CT,"LU, MA, MI, JU",6,20,13,20,7,4,0
+T_CT,"VI, SA",6,21,6,14,8,2,0
+T_CT,"VI, SA",6,21,13,21,8,4,0
+T_CT,DO,6,21,6,14,8,3,0
+T_CT,DO,6,21,13,21,8,5,0
+T_CT,FE,6,21,6,14,8,2,0
+T_CT,FE,6,21,13,21,8,5,0
